@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CFB Fantasy League | Live Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .live-pulse {
+      animation: pulse-dot 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-amber-500 selection:text-black">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-football text-amber-500 text-2xl"></i>
+        <span class="font-black text-xl tracking-wider uppercase text-white">CFB Fantasy Live</span>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">WEEK 1</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div id="syncTime" class="text-xs text-slate-400 hidden sm:block">Syncing...</div>
+        <button id="refreshBtn" onclick="fetchData()" class="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+          <i id="refreshIcon" class="fa-solid fa-rotate"></i>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- HERO / QUICK STATS -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex items-center space-x-4">
+        <div class="h-12 w-12 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-trophy"></i>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-slate-400 uppercase">League Leader</div>
+          <div id="statLeader" class="text-lg font-bold text-white">--</div>
+        </div>
+      </div>
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex items-center space-x-4">
+        <div class="h-12 w-12 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-fire"></i>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-slate-400 uppercase">High Score</div>
+          <div id="statHighScore" class="text-lg font-bold text-white">--</div>
+        </div>
+      </div>
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex items-center space-x-4">
+        <div class="h-12 w-12 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-clock"></i>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-slate-400 uppercase">Live Games</div>
+          <div id="statLiveCount" class="text-lg font-bold text-white">--</div>
+        </div>
+      </div>
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 flex items-center space-x-4">
+        <div class="h-12 w-12 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div>
+          <div class="text-xs font-medium text-slate-400 uppercase">Max Potential Ceiling</div>
+          <div id="statMaxCeiling" class="text-lg font-bold text-white">--</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE LEADERBOARD TABLE -->
+    <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+      <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/90">
+        <div>
+          <h2 class="text-lg font-bold text-white">Live Week 1 Leaderboard</h2>
+          <p class="text-xs text-slate-400">Ranked by total current points</p>
+        </div>
+        <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 live-pulse"></span>
+          <span>Live Tracking</span>
+        </span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-950/40 border-b border-slate-800">
+              <th class="py-3.5 px-4 text-center w-16">Rank</th>
+              <th class="py-3.5 px-4">Owner</th>
+              <th class="py-3.5 px-4 text-right">Points</th>
+              <th class="py-3.5 px-4 text-center">Record (W-L)</th>
+              <th class="py-3.5 px-4 text-center">In Progress</th>
+              <th class="py-3.5 px-4 text-center">Remaining</th>
+              <th class="py-3.5 px-4 text-right">Max Ceiling</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody" class="divide-y divide-slate-800/60 text-sm">
+            <tr>
+              <td colspan="7" class="py-12 text-center text-slate-500">
+                <i class="fa-solid fa-spinner fa-spin text-xl mb-2"></i>
+                <p>Loading live leaderboard...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- MATCHUP CARDS BY OWNER -->
+    <section class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Rosters & Live Matchups</h2>
+          <p class="text-xs text-slate-400">View team slate, closing lines, and active game clocks</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <select id="ownerFilter" onchange="renderMatchups()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:border-amber-500">
+            <option value="ALL">All Owners</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="matchupsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Matchup cards render dynamically here -->
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ==========================================
+    // PASTE YOUR ACTUAL WEB APP URL BETWEEN THE QUOTES:
+    // ==========================================
+    const API_URL = "https://script.google.com/macros/s/AKfycbyykW5vsYkEoAFCiG0oOE6cM6UxrkcD7Q-1wr3QuVWxpRZhHm3X--80z1DuqtA3TI-B/exec";
+
+    let state = {
+      leaderboard: [],
+      standings: [],
+      matchups: []
+    };
+
+    async function fetchData() {
+      const refreshIcon = document.getElementById("refreshIcon");
+      if (refreshIcon) refreshIcon.classList.add("fa-spin");
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "GET",
+          redirect: "follow"
+        });
+        const data = await res.json();
+
+        if (data.error) throw new Error(data.error);
+
+        state.leaderboard = data.leaderboard || [];
+        state.standings = data.standings || [];
+        state.matchups = data.matchups || [];
+
+        renderLeaderboard();
+        populateOwnerFilter();
+        renderMatchups();
+        updateStats();
+
+        const now = new Date();
+        const syncEl = document.getElementById("syncTime");
+        if (syncEl) {
+          syncEl.innerText = `Last synced: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+        }
+      } catch (err) {
+        console.error("Fetch failed:", err);
+        const syncEl = document.getElementById("syncTime");
+        if (syncEl) syncEl.innerText = "Sync failed. Retrying...";
+      } finally {
+        if (refreshIcon) refreshIcon.classList.remove("fa-spin");
+      }
+    }
+
+    function renderLeaderboard() {
+      const tbody = document.getElementById("leaderboardBody");
+      if (!tbody) return;
+      
+      if (!state.leaderboard.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">No active scoreboard data found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = state.leaderboard.map((row, idx) => {
+        const rankColor = idx === 0 ? "text-amber-400 font-bold" : idx === 1 ? "text-slate-300 font-bold" : idx === 2 ? "text-amber-600 font-bold" : "text-slate-400";
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3 px-4 text-center font-mono ${rankColor}">${row.rank}</td>
+            <td class="py-3 px-4 font-semibold text-white">${row.owner}</td>
+            <td class="py-3 px-4 text-right font-mono font-bold text-amber-400">${row.livePts}</td>
+            <td class="py-3 px-4 text-center font-mono text-slate-300">${row.record}</td>
+            <td class="py-3 px-4 text-center">
+              ${row.inProgress > 0 
+                ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                     <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 live-pulse mr-1.5"></span>${row.inProgress}
+                   </span>` 
+                : `<span class="text-slate-500 font-mono">0</span>`}
+            </td>
+            <td class="py-3 px-4 text-center font-mono text-slate-400">${row.remaining}</td>
+            <td class="py-3 px-4 text-right font-mono font-bold text-slate-200">${row.maxCeiling}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function populateOwnerFilter() {
+      const select = document.getElementById("ownerFilter");
+      if (!select) return;
+      const current = select.value;
+      const owners = [...new Set(state.matchups.map(m => m.owner))].sort();
+
+      select.innerHTML = `<option value="ALL">All Owners (${owners.length})</option>` + 
+        owners.map(o => `<option value="${o}" ${o === current ? "selected" : ""}>${o}</option>`).join("");
+    }
+
+    function renderMatchups() {
+      const container = document.getElementById("matchupsGrid");
+      const filterSelect = document.getElementById("ownerFilter");
+      if (!container || !filterSelect) return;
+
+      const filter = filterSelect.value;
+      const filtered = filter === "ALL" ? state.matchups : state.matchups.filter(m => m.owner === filter);
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">No matchups found.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(m => {
+        const isWon = m.outcome === "Won";
+        const isLost = m.outcome === "Lost";
+        const isInProgress = m.outcome === "In Progress";
+
+        let badge = `<span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Upcoming</span>`;
+        if (isWon) badge = `<span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold">WON (+${m.points} pts)</span>`;
+        if (isLost) badge = `<span class="text-xs px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold">LOST</span>`;
+        if (isInProgress) badge = `<span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-semibold flex items-center space-x-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 live-pulse mr-1"></span>${m.statusClock || "Live"}</span>`;
+
+        return `
+          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition shadow">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">${m.owner}</span>
+                ${badge}
+              </div>
+              <div class="text-base font-bold text-white mb-0.5">${m.team}</div>
+              <div class="text-xs text-slate-400 flex items-center space-x-1">
+                <span>vs</span>
+                <span class="text-slate-300 font-medium">${m.opponent}</span>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs">
+              <div class="text-slate-400">
+                Line: <span class="font-mono text-slate-200 font-semibold">${m.gameLine || m.openLine || "PK"}</span>
+              </div>
+              <div class="text-slate-400">
+                Status: <span class="font-medium text-slate-300">${m.statusClock || "Scheduled"}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function updateStats() {
+      if (state.leaderboard.length > 0) {
+        const leader = state.leaderboard[0];
+        const statLeader = document.getElementById("statLeader");
+        const statHighScore = document.getElementById("statHighScore");
+        const statLiveCount = document.getElementById("statLiveCount");
+        const statMaxCeiling = document.getElementById("statMaxCeiling");
+
+        if (statLeader) statLeader.innerText = leader.owner;
+        if (statHighScore) statHighScore.innerText = `${leader.livePts} pts`;
+
+        const totalLive = state.leaderboard.reduce((acc, row) => acc + (row.inProgress || 0), 0);
+        if (statLiveCount) statLiveCount.innerText = totalLive;
+
+        const maxCeiling = Math.max(...state.leaderboard.map(r => r.maxCeiling || 0));
+        if (statMaxCeiling) statMaxCeiling.innerText = `${maxCeiling} pts`;
+      }
+    }
+
+    // Initial Fetch & 60-second Auto-Refresh Loop
+    fetchData();
+    setInterval(fetchData, 60000);
+  </script>
+</body>
+</html>
