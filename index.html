@@ -385,34 +385,64 @@
       const container = document.getElementById("chokeJobsContainer");
       if (!container) return;
 
-      // Extract all games where team lost while being favored (line < 0)
+      function clean(s) {
+        return (s || "").toString().toLowerCase().replace(/[^a-z0-9]/g, "");
+      }
+
       const chokes = [];
       state.matchups.forEach(m => {
         if (m.outcome === "Lost") {
-          const lineStr = (m.gameLine || m.openLine || "").toString().trim();
-          const match = lineStr.match(/([+-]?\d+(\.\d+)?)/);
-          if (match) {
-            const spread = parseFloat(match[1]);
-            // Negative spread means favored
-            if (spread < 0) {
-              chokes.push({
-                team: m.team,
-                owner: m.owner,
-                opponent: m.opponent,
-                spread: Math.abs(spread),
-                lineText: lineStr,
-                teamLogo: m.teamLogo
-              });
+          const rawLine = (m.gameLine || m.openLine || "").toString().trim();
+          if (!rawLine || rawLine.toUpperCase() === "PK" || rawLine.toUpperCase() === "EVEN") return;
+
+          let spreadForTeam = null;
+          const myTeamClean = clean(m.team);
+          const oppClean = clean(m.opponent);
+
+          // Case 1: Line has team prefix like "TEX -34.5" or "MICH -10.5"
+          const prefixMatch = rawLine.match(/^([A-Za-z\s]+)\s*([+-]?\d+(\.\d+)?)/);
+          if (prefixMatch) {
+            const favoredTeamStr = clean(prefixMatch[1]);
+            const num = parseFloat(prefixMatch[2]);
+            const absVal = Math.abs(num);
+
+            // Did the prefix match the drafted team or the opponent?
+            if (favoredTeamStr.includes(myTeamClean) || myTeamClean.includes(favoredTeamStr)) {
+              // Prefix is my team -> if negative, my team is favored
+              spreadForTeam = num < 0 ? -absVal : absVal;
+            } else if (favoredTeamStr.includes(oppClean) || oppClean.includes(favoredTeamStr)) {
+              // Prefix is opponent -> opponent is favored by absVal, so my team is +absVal (underdog)
+              spreadForTeam = absVal;
             }
+          }
+
+          // Case 2: Plain numeric line like "-14.5" or "+34.5"
+          if (spreadForTeam === null) {
+            const numMatch = rawLine.match(/([+-]?\d+(\.\d+)?)/);
+            if (numMatch) {
+              spreadForTeam = parseFloat(numMatch[1]);
+            }
+          }
+
+          // Only a choke if my team was favored (spread < 0)
+          if (spreadForTeam !== null && spreadForTeam < 0) {
+            const favoredBy = Math.abs(spreadForTeam);
+            chokes.push({
+              team: m.team,
+              owner: m.owner,
+              opponent: m.opponent,
+              spread: favoredBy,
+              teamLogo: m.teamLogo
+            });
           }
         }
       });
 
-      // Sort by largest favorite line (biggest choke first)
+      // Sort largest favorite first (e.g. favored by 21 before favored by 3)
       chokes.sort((a, b) => b.spread - a.spread);
 
       if (!chokes.length) {
-        container.innerHTML = `<div class="col-span-full py-4 text-center text-slate-500 text-xs">No favorites have choked yet.</div>`;
+        container.innerHTML = `<div class="col-span-full py-4 text-center text-slate-500 text-xs">No favorites have lost yet this week.</div>`;
         return;
       }
 
