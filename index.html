@@ -389,6 +389,19 @@
         return (s || "").toString().toLowerCase().replace(/[^a-z0-9]/g, "");
       }
 
+      // Check if team letters form an acronym (e.g., "PSU" -> "Penn State")
+      function matchesTeam(abbrev, teamName) {
+        const a = clean(abbrev);
+        const t = clean(teamName);
+        if (!a || !t) return false;
+        if (t.startsWith(a) || a.startsWith(t)) return true;
+        // Acronym match: "Penn State" -> "ps" or "psu"
+        const words = (teamName || "").split(/\s+/).filter(w => w.length > 0);
+        const acronym = words.map(w => w[0].toLowerCase()).join("");
+        if (acronym.startsWith(a) || a === acronym) return true;
+        return false;
+      }
+
       const chokes = [];
       state.matchups.forEach(m => {
         if (m.outcome !== "Lost") return;
@@ -396,44 +409,34 @@
         const rawLine = (m.gameLine || m.openLine || "").toString().trim();
         if (!rawLine || rawLine.toUpperCase() === "PK" || rawLine.toUpperCase() === "EVEN") return;
 
-        // 1. If line explicitly has a plus sign (+34.5), this team is an underdog. Skip!
+        // Underdog indicator
         if (rawLine.startsWith("+") || rawLine.includes(" +")) return;
 
         let favoredBy = null;
-        const myTeamClean = clean(m.team);
-        const oppClean = clean(m.opponent);
 
-        // 2. Check for ESPN odds style: "TEAM -XX.X" (e.g. "TEX -34.5", "UGA -13.5")
+        // Parse format like "PSU -21.5" or "MICH -14"
         const prefixMatch = rawLine.match(/^([A-Za-z\s]+)\s*-\s*(\d+(\.\d+)?)/);
         if (prefixMatch) {
-          const abbrev = clean(prefixMatch[1]);
+          const abbrev = prefixMatch[1].trim();
           const lineVal = parseFloat(prefixMatch[2]);
 
-          const oppStarts = oppClean.startsWith(abbrev) || abbrev === oppClean;
-          const myStarts = myTeamClean.startsWith(abbrev) || abbrev === myTeamClean;
+          const isMyTeam = matchesTeam(abbrev, m.team);
+          const isOpp = matchesTeam(abbrev, m.opponent);
 
-          if (oppStarts && !myStarts) {
-            // Opponent was favored -> My team was the underdog. Skip!
-            return;
-          } else if (myStarts && !oppStarts) {
-            // My team was favored
+          if (isMyTeam && !isOpp) {
             favoredBy = lineVal;
-          } else if (myStarts && oppStarts) {
-            // Both share the prefix (e.g. "Texas" vs "Texas State")
-            // The shorter entity is the root school (Texas), so if my team is longer, my team was the underdog.
-            if (oppClean.length < myTeamClean.length) {
-              return;
-            } else {
-              favoredBy = lineVal;
-            }
+          } else if (isOpp) {
+            // Opponent was favored -> My team was underdog
+            return;
+          } else {
+            // If abbrev doesn't match my team name at all, opponent is favored
+            return;
           }
-        }
-
-        // 3. Pure negative numbers (e.g. "-14.5")
-        if (favoredBy === null && (rawLine.startsWith("-") || rawLine.includes(" -"))) {
-          const numMatch = rawLine.match(/-\s*(\d+(\.\d+)?)/);
-          if (numMatch) {
-            favoredBy = parseFloat(numMatch[1]);
+        } else {
+          // Plain numeric line like "-7.5"
+          const plainNum = rawLine.match(/^-\s*(\d+(\.\d+)?)/);
+          if (plainNum) {
+            favoredBy = parseFloat(plainNum[1]);
           }
         }
 
@@ -447,7 +450,6 @@
         }
       });
 
-      // Sort largest favorite first
       chokes.sort((a, b) => b.spread - a.spread);
 
       if (!chokes.length) {
