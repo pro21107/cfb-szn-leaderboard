@@ -367,7 +367,7 @@
         return;
       }
 
-      container.innerHTML = state.bestWins.slice(0, 5).map((win, idx) => `
+      container.innerHTML = state.bestWins.slice(0, 3).map((win, idx) => `
         <div class="bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-lg p-2.5 relative overflow-hidden transition">
           <div class="flex items-center justify-between text-xs mb-1">
             <span class="font-bold text-slate-400 uppercase text-[10px]">#${idx + 1} Best Win</span>
