@@ -153,7 +153,7 @@
         </div>
       </section>
 
-      <!-- MATCHUP CARDS WITH LOGOS, REAL SCORES, COVER INDICATOR, TV & KICKOFF -->
+      <!-- MATCHUP CARDS WITH LOGOS, SCORES, COVER INDICATOR, LAST PLAY -->
       <section class="space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -395,7 +395,6 @@
       return (str || "").toString().toLowerCase().replace(/[^a-z0-9]/g, "");
     }
 
-    // HELPER: CALCULATE LIVE SPREAD COVER / BUST
     function calculateCover(teamScore, oppScore, lineStr) {
       if (teamScore === "" || oppScore === "" || !lineStr) return null;
       
@@ -410,7 +409,6 @@
         if (match) spread = parseFloat(match[1]);
       }
 
-      // Net margin plus the spread handicap
       const diff = (tScore - oScore) + spread;
 
       if (diff > 0) {
@@ -472,7 +470,6 @@
         const teamScoreNum = Number(m.teamScore);
         const oppScoreNum = Number(m.oppScore);
 
-        // Calculate Live Cover / Bust
         const coverData = (isInProgress || isWon || isLost) ? calculateCover(m.teamScore, m.oppScore, m.gameLine || m.openLine) : null;
         let coverBadge = "";
         if (coverData) {
@@ -500,7 +497,7 @@
                 </div>
               ` : ''}
               
-              <!-- MATCHUP ROW WITH LOGOS & SCORES -->
+              <!-- MATCHUP ROW WITH OFFICIAL ESPN TEAM LOGOS -->
               <div class="space-y-2">
                 <!-- TEAM ROW -->
                 <div class="flex items-center justify-between">
@@ -526,7 +523,7 @@
               </div>
             </div>
 
-            <!-- FOOTER: SPREAD, COVER BADGE, TV & CLOCK -->
+            <!-- FOOTER: SPREAD, COVER BADGE, TV, CLOCK & LAST PLAY -->
             <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-col gap-1.5 text-[11px] text-slate-400">
               <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-2">
@@ -539,8 +536,16 @@
               </div>
               
               ${coverBadge ? `
-                <div class="flex justify-start pt-1">
+                <div class="flex justify-start pt-0.5">
                   ${coverBadge}
+                </div>
+              ` : ''}
+
+              <!-- LAST SCORING PLAY TICKER -->
+              ${m.lastPlay ? `
+                <div class="mt-1 pt-1.5 border-t border-slate-800/50 text-[10px] text-slate-400 flex items-start space-x-1.5">
+                  <i class="fa-solid fa-bolt text-amber-400/80 text-[10px] mt-0.5 flex-shrink-0"></i>
+                  <span class="line-clamp-2 leading-tight text-slate-300">${m.lastPlay}</span>
                 </div>
               ` : ''}
             </div>
