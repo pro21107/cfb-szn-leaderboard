@@ -2,8 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>CFB Fantasy League | Live Dashboard</title>
+  
+  <!-- MOBILE APP / PWA CONFIGURATION -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CFB Live" />
+  <meta name="theme-color" content="#020617" />
+  
+  <!-- APP ICONS -->
+  <link rel="apple-touch-icon" href="https://a.espncdn.com/combiner/i?img=/i/teamlogos/ncaa/500/scoreboard.png&w=180&h=180" />
+  <link rel="icon" type="image/png" href="https://a.espncdn.com/combiner/i?img=/i/teamlogos/ncaa/500/scoreboard.png&w=32&h=32" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
@@ -142,12 +153,12 @@
         </div>
       </section>
 
-      <!-- MATCHUP CARDS WITH LOGOS, REAL SCORES, TV & KICKOFF -->
+      <!-- MATCHUP CARDS WITH LOGOS, REAL SCORES, COVER INDICATOR, TV & KICKOFF -->
       <section class="space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 class="text-lg font-bold text-white">Rosters & Live Matchups</h2>
-            <p class="text-xs text-slate-400">Team schedules, TV channels, and in-game scoring</p>
+            <p class="text-xs text-slate-400">Team schedules, live score spreads, and channel info</p>
           </div>
           
           <!-- FILTERS: STATUS BUTTONS + OWNER DROPDOWN -->
@@ -384,18 +395,44 @@
       return (str || "").toString().toLowerCase().replace(/[^a-z0-9]/g, "");
     }
 
+    // HELPER: CALCULATE LIVE SPREAD COVER / BUST
+    function calculateCover(teamScore, oppScore, lineStr) {
+      if (teamScore === "" || oppScore === "" || !lineStr) return null;
+      
+      const tScore = Number(teamScore);
+      const oScore = Number(oppScore);
+      if (isNaN(tScore) || isNaN(oScore)) return null;
+
+      let spread = 0;
+      const clean = lineStr.toString().trim().toUpperCase();
+      if (clean !== "PK" && clean !== "EVEN") {
+        const match = clean.match(/([+-]?\d+(\.\d+)?)/);
+        if (match) spread = parseFloat(match[1]);
+      }
+
+      // Net margin plus the spread handicap
+      const diff = (tScore - oScore) + spread;
+
+      if (diff > 0) {
+        return { text: `Covering by ${diff % 1 === 0 ? diff : diff.toFixed(1)}`, state: "cover" };
+      } else if (diff < 0) {
+        const absDiff = Math.abs(diff);
+        return { text: `Busting by ${absDiff % 1 === 0 ? absDiff : absDiff.toFixed(1)}`, state: "bust" };
+      } else {
+        return { text: `Pushing`, state: "push" };
+      }
+    }
+
     function renderMatchups() {
       const container = document.getElementById("matchupsGrid");
       const ownerFilter = document.getElementById("ownerFilter").value;
       if (!container) return;
 
-      // Build Team -> Owner lookup to detect Head-to-Head matchups
       const teamOwnerMap = {};
       state.matchups.forEach(m => {
         teamOwnerMap[cleanName(m.team)] = m.owner;
       });
 
-      // Update Live Games count badge on the filter pill
       const liveGamesTotal = state.matchups.filter(m => m.outcome === "In Progress").length;
       const liveBadge = document.getElementById("badgeLiveCount");
       if (liveBadge) liveBadge.innerText = liveGamesTotal;
@@ -405,7 +442,6 @@
         filtered = filtered.filter(m => m.owner === ownerFilter);
       }
 
-      // Filter by Game Status
       if (state.statusFilter === "LIVE") {
         filtered = filtered.filter(m => m.outcome === "In Progress");
       } else if (state.statusFilter === "UPCOMING") {
@@ -429,13 +465,25 @@
         if (isLost) badge = `<span class="text-[11px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold">LOST</span>`;
         if (isInProgress) badge = `<span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-semibold flex items-center"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 live-pulse mr-1.5"></span>${m.statusClock || "Live"}</span>`;
 
-        // Check if opponent is owned by another league member
         const oppOwner = teamOwnerMap[cleanName(m.opponent)];
         const isH2H = oppOwner && oppOwner !== m.owner;
 
         const hasScore = m.teamScore !== "" && m.oppScore !== "";
         const teamScoreNum = Number(m.teamScore);
         const oppScoreNum = Number(m.oppScore);
+
+        // Calculate Live Cover / Bust
+        const coverData = (isInProgress || isWon || isLost) ? calculateCover(m.teamScore, m.oppScore, m.gameLine || m.openLine) : null;
+        let coverBadge = "";
+        if (coverData) {
+          if (coverData.state === "cover") {
+            coverBadge = `<span class="text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded">${coverData.text}</span>`;
+          } else if (coverData.state === "bust") {
+            coverBadge = `<span class="text-[10px] font-semibold text-rose-400 bg-rose-950/60 border border-rose-800/60 px-1.5 py-0.5 rounded">${coverData.text}</span>`;
+          } else {
+            coverBadge = `<span class="text-[10px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded">${coverData.text}</span>`;
+          }
+        }
 
         return `
           <div class="bg-slate-900/80 border ${isH2H ? 'border-amber-500/40 bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/10' : 'border-slate-800'} rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition shadow">
@@ -478,15 +526,23 @@
               </div>
             </div>
 
-            <!-- FOOTER: LINE, TV NETWORK & STATUS/KICKOFF -->
-            <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-[11px] text-slate-400">
-              <div class="flex items-center space-x-2">
-                <span>Line: <strong class="text-slate-200 font-mono">${m.gameLine || m.openLine || "PK"}</strong></span>
-                ${m.tv ? `<span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-semibold uppercase">${m.tv}</span>` : ''}
+            <!-- FOOTER: SPREAD, COVER BADGE, TV & CLOCK -->
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-col gap-1.5 text-[11px] text-slate-400">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                  <span>Line: <strong class="text-slate-200 font-mono">${m.gameLine || m.openLine || "PK"}</strong></span>
+                  ${m.tv ? `<span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-semibold uppercase">${m.tv}</span>` : ''}
+                </div>
+                <div>
+                  <span class="text-slate-300 font-medium">${m.statusClock || m.kickoff || "Scheduled"}</span>
+                </div>
               </div>
-              <div>
-                <span class="text-slate-300 font-medium">${m.statusClock || m.kickoff || "Scheduled"}</span>
-              </div>
+              
+              ${coverBadge ? `
+                <div class="flex justify-start pt-1">
+                  ${coverBadge}
+                </div>
+              ` : ''}
             </div>
           </div>
         `;
