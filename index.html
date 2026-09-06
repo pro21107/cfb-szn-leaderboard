@@ -144,13 +144,26 @@
 
       <!-- MATCHUP CARDS WITH LOGOS, REAL SCORES, TV & KICKOFF -->
       <section class="space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 class="text-lg font-bold text-white">Rosters & Live Matchups</h2>
             <p class="text-xs text-slate-400">Team schedules, TV channels, and in-game scoring</p>
           </div>
-          <div class="flex items-center space-x-3">
-            <select id="ownerFilter" onchange="renderMatchups()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:border-amber-500">
+          
+          <!-- FILTERS: STATUS BUTTONS + OWNER DROPDOWN -->
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex bg-slate-900 border border-slate-800 p-0.5 rounded-lg text-xs" id="statusFilterGroup">
+              <button onclick="setStatusFilter('ALL')" id="filterBtnALL" class="px-2.5 py-1 rounded font-semibold bg-amber-500 text-black transition">ALL</button>
+              <button onclick="setStatusFilter('LIVE')" id="filterBtnLIVE" class="px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition flex items-center space-x-1">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 mr-1"></span>
+                <span>LIVE</span>
+                <span id="badgeLiveCount" class="ml-1 text-[10px] px-1 rounded bg-slate-800 text-slate-300">0</span>
+              </button>
+              <button onclick="setStatusFilter('UPCOMING')" id="filterBtnUPCOMING" class="px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition">UPCOMING</button>
+              <button onclick="setStatusFilter('FINAL')" id="filterBtnFINAL" class="px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition">FINAL</button>
+            </div>
+
+            <select id="ownerFilter" onchange="renderMatchups()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 outline-none focus:border-amber-500">
               <option value="ALL">All Owners</option>
             </select>
           </div>
@@ -193,7 +206,8 @@
       leaderboard: [],
       bestWins: [],
       standings: [],
-      matchups: []
+      matchups: [],
+      statusFilter: "ALL"
     };
 
     function switchView(view) {
@@ -214,6 +228,20 @@
         tabWeek.className = "px-2.5 py-1 rounded text-xs font-bold transition bg-amber-500 text-black";
         tabSeason.className = "px-2.5 py-1 rounded text-xs font-bold transition text-slate-400 hover:text-white";
       }
+    }
+
+    function setStatusFilter(filter) {
+      state.statusFilter = filter;
+      const filters = ['ALL', 'LIVE', 'UPCOMING', 'FINAL'];
+      filters.forEach(f => {
+        const btn = document.getElementById(`filterBtn${f}`);
+        if (f === filter) {
+          btn.className = "px-2.5 py-1 rounded font-semibold bg-amber-500 text-black transition flex items-center space-x-1";
+        } else {
+          btn.className = "px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition flex items-center space-x-1";
+        }
+      });
+      renderMatchups();
     }
 
     async function changeWeek() {
@@ -275,8 +303,6 @@
 
       tbody.innerHTML = state.leaderboard.map((row, idx) => {
         const rankColor = idx === 0 ? "text-amber-400 font-bold" : idx === 1 ? "text-slate-300 font-bold" : idx === 2 ? "text-amber-600 font-bold" : "text-slate-400";
-        
-        // FEATURE: Progress Bar (Banked Pts vs Ceiling)
         const currentPct = Math.min(100, Math.round((row.livePts / highestCeiling) * 100));
         const ceilingPct = Math.min(100, Math.round((row.maxCeiling / highestCeiling) * 100));
 
@@ -306,7 +332,6 @@
       }).join("");
     }
 
-    // FEATURE: TOP 5 BEST WINS SPOTLIGHT
     function renderBestWins() {
       const container = document.getElementById("bestWinsContainer");
       if (!container) return;
@@ -355,13 +380,44 @@
         owners.map(o => `<option value="${o}" ${o === current ? "selected" : ""}>${o}</option>`).join("");
     }
 
-    // FEATURE: MATCHUP CARDS WITH LOGOS, SCORES, TV NETWORK, KICKOFF TIME
+    function cleanName(str) {
+      return (str || "").toString().toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
     function renderMatchups() {
       const container = document.getElementById("matchupsGrid");
-      const filter = document.getElementById("ownerFilter").value;
+      const ownerFilter = document.getElementById("ownerFilter").value;
       if (!container) return;
 
-      const filtered = filter === "ALL" ? state.matchups : state.matchups.filter(m => m.owner === filter);
+      // Build Team -> Owner lookup to detect Head-to-Head matchups
+      const teamOwnerMap = {};
+      state.matchups.forEach(m => {
+        teamOwnerMap[cleanName(m.team)] = m.owner;
+      });
+
+      // Update Live Games count badge on the filter pill
+      const liveGamesTotal = state.matchups.filter(m => m.outcome === "In Progress").length;
+      const liveBadge = document.getElementById("badgeLiveCount");
+      if (liveBadge) liveBadge.innerText = liveGamesTotal;
+
+      let filtered = state.matchups;
+      if (ownerFilter !== "ALL") {
+        filtered = filtered.filter(m => m.owner === ownerFilter);
+      }
+
+      // Filter by Game Status
+      if (state.statusFilter === "LIVE") {
+        filtered = filtered.filter(m => m.outcome === "In Progress");
+      } else if (state.statusFilter === "UPCOMING") {
+        filtered = filtered.filter(m => m.outcome !== "Won" && m.outcome !== "Lost" && m.outcome !== "In Progress");
+      } else if (state.statusFilter === "FINAL") {
+        filtered = filtered.filter(m => m.outcome === "Won" || m.outcome === "Lost");
+      }
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500 text-sm">No matchups found for this filter selection.</div>`;
+        return;
+      }
 
       container.innerHTML = filtered.map(m => {
         const isWon = m.outcome === "Won";
@@ -373,17 +429,28 @@
         if (isLost) badge = `<span class="text-[11px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold">LOST</span>`;
         if (isInProgress) badge = `<span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-semibold flex items-center"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 live-pulse mr-1.5"></span>${m.statusClock || "Live"}</span>`;
 
+        // Check if opponent is owned by another league member
+        const oppOwner = teamOwnerMap[cleanName(m.opponent)];
+        const isH2H = oppOwner && oppOwner !== m.owner;
+
         const hasScore = m.teamScore !== "" && m.oppScore !== "";
         const teamScoreNum = Number(m.teamScore);
         const oppScoreNum = Number(m.oppScore);
 
         return `
-          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition shadow">
+          <div class="bg-slate-900/80 border ${isH2H ? 'border-amber-500/40 bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/10' : 'border-slate-800'} rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition shadow">
             <div>
-              <div class="flex justify-between items-center mb-3">
+              <div class="flex justify-between items-center mb-2.5">
                 <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">${m.owner}</span>
                 ${badge}
               </div>
+
+              ${isH2H ? `
+                <div class="mb-2.5 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-[10px] text-amber-300 font-semibold">
+                  <span>⚔️ League Clash</span>
+                  <span>vs ${oppOwner}</span>
+                </div>
+              ` : ''}
               
               <!-- MATCHUP ROW WITH LOGOS & SCORES -->
               <div class="space-y-2">
@@ -391,7 +458,7 @@
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-2.5">
                     ${m.teamLogo ? `<img src="${m.teamLogo}" alt="" class="w-6 h-6 object-contain flex-shrink-0" />` : `<div class="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-[10px] text-slate-500 font-bold">CFB</div>`}
-                    <span class="font-bold text-white text-sm truncate max-w-[160px] sm:max-w-[190px]">${m.team}</span>
+                    <span class="font-bold text-white text-sm truncate max-w-[150px] sm:max-w-[180px]">${m.team}</span>
                   </div>
                   <span class="font-mono font-bold text-base ${hasScore && teamScoreNum >= oppScoreNum ? 'text-emerald-400' : 'text-slate-400'}">
                     ${hasScore ? m.teamScore : '--'}
@@ -402,7 +469,7 @@
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-2.5">
                     ${m.oppLogo ? `<img src="${m.oppLogo}" alt="" class="w-6 h-6 object-contain flex-shrink-0" />` : `<div class="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-[10px] text-slate-500 font-bold">CFB</div>`}
-                    <span class="font-medium text-slate-300 text-sm truncate max-w-[160px] sm:max-w-[190px]">${m.opponent}</span>
+                    <span class="font-medium text-slate-300 text-sm truncate max-w-[150px] sm:max-w-[180px]">${m.opponent}</span>
                   </div>
                   <span class="font-mono font-bold text-base ${hasScore && oppScoreNum > teamScoreNum ? 'text-emerald-400' : 'text-slate-400'}">
                     ${hasScore ? m.oppScore : '--'}
