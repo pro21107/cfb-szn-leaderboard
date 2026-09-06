@@ -104,36 +104,11 @@
         </div>
       </section>
 
-      <!-- SPOTLIGHT: BEST WINS & CHOKE JOBS (SIDE BY SIDE / STACKED) -->
-      <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <!-- TOP 5 BEST WINS -->
-        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl">
-          <div class="flex items-center space-x-2 mb-3">
-            <i class="fa-solid fa-bolt text-amber-400 text-base"></i>
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Top 5 Best Wins</h2>
-          </div>
-          <div id="bestWinsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            <div class="col-span-full py-4 text-center text-slate-500 text-xs">Waiting on completed games...</div>
-          </div>
-        </div>
-
-        <!-- TOP 5 CHOKE JOBS -->
-        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl">
-          <div class="flex items-center space-x-2 mb-3">
-            <i class="fa-solid fa-skull text-rose-400 text-base"></i>
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Top 5 Choke Jobs</h2>
-          </div>
-          <div id="chokeJobsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            <div class="col-span-full py-4 text-center text-slate-500 text-xs">No favorites have choked yet.</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- LIVE LEADERBOARD WITH CEILING PACE BARS -->
+      <!-- LIVE LEADERBOARD (CEILING PACE REMOVED FROM TITLE) -->
       <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
         <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/90">
           <div>
-            <h2 class="text-lg font-bold text-white">Live Leaderboard & Ceiling Pace</h2>
+            <h2 class="text-lg font-bold text-white">Live Leaderboard</h2>
             <p class="text-xs text-slate-400">Current points vs remaining point upside</p>
           </div>
           <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5">
@@ -164,6 +139,31 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- SPOTLIGHT: BEST WINS & CHOKE JOBS (MOVED BELOW LEADERBOARD) -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- TOP 5 BEST WINS -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl">
+          <div class="flex items-center space-x-2 mb-3">
+            <i class="fa-solid fa-bolt text-amber-400 text-base"></i>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Top 5 Best Wins</h2>
+          </div>
+          <div id="bestWinsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div class="col-span-full py-4 text-center text-slate-500 text-xs">Waiting on completed games...</div>
+          </div>
+        </div>
+
+        <!-- TOP 5 CHOKE JOBS -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl">
+          <div class="flex items-center space-x-2 mb-3">
+            <i class="fa-solid fa-skull text-rose-400 text-base"></i>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Top 5 Choke Jobs</h2>
+          </div>
+          <div id="chokeJobsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div class="col-span-full py-4 text-center text-slate-500 text-xs">No favorites have choked yet.</div>
+          </div>
         </div>
       </section>
 
