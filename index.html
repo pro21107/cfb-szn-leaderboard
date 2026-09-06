@@ -104,14 +104,28 @@
         </div>
       </section>
 
-      <!-- FEATURE: TOP 5 BEST WINS SPOTLIGHT -->
-      <section class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl">
-        <div class="flex items-center space-x-2 mb-4">
-          <i class="fa-solid fa-bolt text-amber-400 text-base"></i>
-          <h2 class="text-base font-bold text-white uppercase tracking-wider">Top 5 Best Wins of the Week</h2>
+      <!-- SPOTLIGHT: BEST WINS & CHOKE JOBS (SIDE BY SIDE / STACKED) -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- TOP 5 BEST WINS -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl">
+          <div class="flex items-center space-x-2 mb-3">
+            <i class="fa-solid fa-bolt text-amber-400 text-base"></i>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Top 5 Best Wins</h2>
+          </div>
+          <div id="bestWinsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div class="col-span-full py-4 text-center text-slate-500 text-xs">Waiting on completed games...</div>
+          </div>
         </div>
-        <div id="bestWinsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <div class="col-span-full py-4 text-center text-slate-500 text-xs">Waiting on completed games...</div>
+
+        <!-- TOP 5 CHOKE JOBS -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl">
+          <div class="flex items-center space-x-2 mb-3">
+            <i class="fa-solid fa-skull text-rose-400 text-base"></i>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Top 5 Choke Jobs</h2>
+          </div>
+          <div id="chokeJobsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div class="col-span-full py-4 text-center text-slate-500 text-xs">No favorites have choked yet.</div>
+          </div>
         </div>
       </section>
 
@@ -281,6 +295,7 @@
         renderWeekDropdown();
         renderLeaderboard();
         renderBestWins();
+        renderChokeJobs();
         populateOwnerFilter();
         renderMatchups();
         updateStats();
@@ -348,19 +363,68 @@
       if (!container) return;
 
       if (!state.bestWins.length) {
-        container.innerHTML = `<div class="col-span-full py-4 text-center text-slate-500 text-xs">No completed wins posted for this week yet.</div>`;
+        container.innerHTML = `<div class="col-span-full py-4 text-center text-slate-500 text-xs">Waiting on completed games...</div>`;
         return;
       }
 
       container.innerHTML = state.bestWins.slice(0, 5).map((win, idx) => `
-        <div class="bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-lg p-3 relative overflow-hidden transition">
+        <div class="bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-lg p-2.5 relative overflow-hidden transition">
           <div class="flex items-center justify-between text-xs mb-1">
             <span class="font-bold text-slate-400 uppercase text-[10px]">#${idx + 1} Best Win</span>
             <span class="font-mono font-black text-emerald-400">+${win.points} pts</span>
           </div>
           <div class="font-bold text-white text-sm truncate">${win.team}</div>
           <div class="text-[11px] text-slate-400 truncate">vs ${win.opponent}</div>
-          <div class="mt-2 text-[10px] font-semibold text-amber-400/90 truncate">${win.owner}</div>
+          <div class="mt-1.5 text-[10px] font-semibold text-amber-400/90 truncate">${win.owner}</div>
+        </div>
+      `).join("");
+    }
+
+    // FEATURE: TOP 5 CHOKE JOBS (FAVORITES THAT LOST)
+    function renderChokeJobs() {
+      const container = document.getElementById("chokeJobsContainer");
+      if (!container) return;
+
+      // Extract all games where team lost while being favored (line < 0)
+      const chokes = [];
+      state.matchups.forEach(m => {
+        if (m.outcome === "Lost") {
+          const lineStr = (m.gameLine || m.openLine || "").toString().trim();
+          const match = lineStr.match(/([+-]?\d+(\.\d+)?)/);
+          if (match) {
+            const spread = parseFloat(match[1]);
+            // Negative spread means favored
+            if (spread < 0) {
+              chokes.push({
+                team: m.team,
+                owner: m.owner,
+                opponent: m.opponent,
+                spread: Math.abs(spread),
+                lineText: lineStr,
+                teamLogo: m.teamLogo
+              });
+            }
+          }
+        }
+      });
+
+      // Sort by largest favorite line (biggest choke first)
+      chokes.sort((a, b) => b.spread - a.spread);
+
+      if (!chokes.length) {
+        container.innerHTML = `<div class="col-span-full py-4 text-center text-slate-500 text-xs">No favorites have choked yet.</div>`;
+        return;
+      }
+
+      container.innerHTML = chokes.slice(0, 5).map((c, idx) => `
+        <div class="bg-slate-950/70 border border-rose-950/40 hover:border-rose-500/50 rounded-lg p-2.5 relative overflow-hidden transition">
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-bold text-rose-400 uppercase text-[10px]">#${idx + 1} Choke</span>
+            <span class="font-mono font-black text-rose-400">Fav by ${c.spread}</span>
+          </div>
+          <div class="font-bold text-white text-sm truncate">${c.team}</div>
+          <div class="text-[11px] text-slate-400 truncate">lost to ${c.opponent}</div>
+          <div class="mt-1.5 text-[10px] font-semibold text-slate-300 truncate">${c.owner}</div>
         </div>
       `).join("");
     }
