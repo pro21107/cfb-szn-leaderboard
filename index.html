@@ -318,13 +318,12 @@
       const select = document.getElementById("weekSelect");
       if (!select || !state.availableWeeks.length) return;
 
-      // Clean string comparison to match "Week 2" with "Week 2", "Week02", etc.
-      const cleanCurrent = state.currentWeek.toLowerCase().replace(/\s+/g, "");
       select.innerHTML = state.availableWeeks.map(w => {
         const cleanW = w.toLowerCase().replace(/\s+/g, "");
-        const label = w.replace(/week\s*0?/i, "WEEK ");
+        const cleanCurrent = state.currentWeek.toLowerCase().replace(/\s+/g, "");
         const isSelected = cleanW === cleanCurrent ? "selected" : "";
-        return `<option value="${w}" ${isSelected}>${label}</option>`;
+        const num = w.replace(/\D/g, "");
+        return `<option value="${w}" ${isSelected}>WEEK ${parseInt(num, 10)}</option>`;
       }).join("");
     }
 
