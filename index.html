@@ -38,6 +38,7 @@
         
         <!-- MULTI-WEEK DROPDOWN -->
         <select id="weekSelect" onchange="changeWeek()" class="bg-slate-950 border border-slate-800 text-amber-400 font-bold text-xs rounded-lg px-2.5 py-1 outline-none focus:border-amber-500 cursor-pointer">
+          <option value="Week 2" selected>WEEK 2</option>
           <option value="Week01">WEEK 1</option>
         </select>
 
@@ -226,7 +227,8 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyykW5vsYkEoAFCiG0oOE6cM6UxrkcD7Q-1wr3QuVWxpRZhHm3X--80z1DuqtA3TI-B/exec";
 
     let state = {
-      currentWeek: "Week01",
+      // Default directly to Week 2 so live games load on refresh
+      currentWeek: "Week 2",
       availableWeeks: [],
       leaderboard: [],
       bestWins: [],
@@ -280,8 +282,10 @@
       if (refreshIcon) refreshIcon.classList.add("fa-spin");
 
       try {
-        const fetchUrl = `${API_URL}?week=${encodeURIComponent(state.currentWeek)}`;
-        const res = await fetch(fetchUrl, { method: "GET", redirect: "follow" });
+        // Cache-busting timestamp prevents browser and GitHub Pages 304 caching
+        const timestamp = new Date().getTime();
+        const fetchUrl = `${API_URL}?week=${encodeURIComponent(state.currentWeek)}&_t=${timestamp}`;
+        const res = await fetch(fetchUrl, { method: "GET", redirect: "follow", cache: "no-store" });
         const data = await res.json();
 
         if (data.error) throw new Error(data.error);
