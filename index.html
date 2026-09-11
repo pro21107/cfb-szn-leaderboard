@@ -314,14 +314,17 @@
       }
     }
 
-    function renderWeekDropdown() {
+   function renderWeekDropdown() {
       const select = document.getElementById("weekSelect");
       if (!select || !state.availableWeeks.length) return;
 
-      const current = state.currentWeek;
+      // Clean string comparison to match "Week 2" with "Week 2", "Week02", etc.
+      const cleanCurrent = state.currentWeek.toLowerCase().replace(/\s+/g, "");
       select.innerHTML = state.availableWeeks.map(w => {
-        const label = w.replace(/week0?/i, "WEEK ");
-        return `<option value="${w}" ${w.toLowerCase() === current.toLowerCase() ? "selected" : ""}>${label}</option>`;
+        const cleanW = w.toLowerCase().replace(/\s+/g, "");
+        const label = w.replace(/week\s*0?/i, "WEEK ");
+        const isSelected = cleanW === cleanCurrent ? "selected" : "";
+        return `<option value="${w}" ${isSelected}>${label}</option>`;
       }).join("");
     }
 
