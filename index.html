@@ -608,25 +608,41 @@
           </tr>`;
       }).join("");
 
-      // Running totals across FINAL weeks only — an in-progress week hasn't paid out.
-      const totals = {};
-      payouts.filter(p => p.complete).forEach(p => {
-        p.winners.forEach(w => { totals[w] = (totals[w] || 0) + p.share; });
-      });
-      const ranked = Object.keys(totals).map(o => ({ owner: o, total: totals[o] })).sort((a, b) => b.total - a.total);
-      const paidOut = ranked.reduce((s, r) => s + r.total, 0);
-      const totalEl = document.getElementById("payoutSeasonTotal");
-      if (totalEl) totalEl.innerText = `$${paidOut.toFixed(2)} paid`;
-      if (totalsEl) {
-        totalsEl.innerHTML = ranked.length
-          ? ranked.map((r, i) => `
-            <div class="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2">
-              <span class="text-xs font-semibold ${i === 0 ? "text-amber-400" : "text-slate-300"}">${i + 1}. ${r.owner}</span>
-              <span class="text-xs font-mono font-bold text-amber-400">$${r.total.toFixed(2)}</span>
-            </div>`).join("")
-          : `<div class="text-xs text-slate-500">No payouts finalized yet.</div>`;
-      }
-    }
+    // Running totals across FINAL weeks only — an in-progress week hasn't paid out.
+// Net = winnings − $200 buy-in, so every owner sees their true position.
+const BUY_IN = 200;
+const totals = {};
+payouts.filter(p => p.complete).forEach(p => {
+  p.winners.forEach(w => { totals[w] = (totals[w] || 0) + p.share; });
+});
+// Every owner counts, not just winners — union of standings owners and payout winners.
+const owners = [];
+(state.standings || []).forEach(s => { if (!owners.includes(s.owner)) owners.push(s.owner); });
+Object.keys(totals).forEach(o => { if (!owners.includes(o)) owners.push(o); });
+const ranked = owners.map(o => {
+  const won = totals[o] || 0;
+  return { owner: o, won: won, net: won - BUY_IN };
+}).sort((a, b) => b.net - a.net);
+const paidOut = ranked.reduce((s, r) => s + r.won, 0);
+const totalEl = document.getElementById("payoutSeasonTotal");
+if (totalEl) totalEl.innerText = `$${paidOut.toFixed(2)} paid`;
+const fmtNet = n => (n > 0 ? "+$" : n < 0 ? "-$" : "$") + Math.abs(n).toFixed(2);
+if (totalsEl) {
+  totalsEl.innerHTML = ranked.length
+    ? ranked.map((r, i) => {
+        const netCls = r.net > 0 ? "text-emerald-400" : r.net < 0 ? "text-red-400" : "text-slate-400";
+        return `
+      <div class="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2">
+        <span class="text-xs font-semibold ${i === 0 ? "text-amber-400" : "text-slate-300"}">${i + 1}. ${r.owner}</span>
+        <span class="text-right">
+          <span class="block text-[10px] font-mono text-slate-500">won $${r.won.toFixed(2)}</span>
+          <span class="block text-xs font-mono font-bold ${netCls}">${fmtNet(r.net)}</span>
+        </span>
+      </div>`;
+      }).join("")
+    : `<div class="text-xs text-slate-500">No payouts finalized yet.</div>`;
+}
+
 
     function populateOwnerFilter() {
       const select = document.getElementById("ownerFilter");
