@@ -3,17 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>CFB Fantasy League | Live Dashboard</title>
+  <title>CFB Fantasy League | Staging</title>
 
-  <!-- MOBILE APP / PWA CONFIGURATION -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="CFB Live" />
+  <meta name="apple-mobile-web-app-title" content="CFB Staging" />
   <meta name="theme-color" content="#020617" />
 
-  <!-- BROWSER FAVICON & APP ICONS -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏈</text></svg>">
-  <link rel="apple-touch-icon" href="https://a.espncdn.com/combiner/i?img=/i/teamlogos/ncaa/500/scoreboard.png&w=180&h=180" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -22,218 +19,228 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.4; transform: scale(0.85); }
     }
-    .live-pulse {
-      animation: pulse-dot 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    .live-pulse { animation: pulse-dot 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
     }
+    .gold-row {
+      background: linear-gradient(100deg, rgba(245,158,11,0.16) 40%, rgba(245,158,11,0.32) 50%, rgba(245,158,11,0.16) 60%);
+      background-size: 400px 100%;
+      animation: shimmer 3.5s linear infinite;
+    }
+    .tab-btn { transition: all .15s ease; }
+    .tab-btn.active { background: #f59e0b; color: #000; }
+    .tab-btn:not(.active):hover { color: #fff; }
+
+    .conf-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 2rem; height: 1.5rem; padding: 0 .4rem;
+      border-radius: .375rem; font-size: 11px; font-weight: 800; letter-spacing: .05em;
+      border: 1px solid rgba(255,255,255,.15);
+    }
+    #trendCanvas { width: 100%; height: 340px; display: block; }
+    @media (min-width: 768px) { #trendCanvas { height: 420px; } }
+    .legend-dot { display:inline-block; width:.65rem; height:.65rem; border-radius:9999px; margin-right:.35rem; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-amber-500 selection:text-black">
 
-  <!-- TOP NAVIGATION BAR -->
+  <!-- ============ HEADER ============ -->
   <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <i class="fa-solid fa-football text-amber-500 text-2xl"></i>
-        <span class="font-black text-xl tracking-wider uppercase text-white hidden sm:inline">CFB Live</span>
-
-        <!-- MULTI-WEEK DROPDOWN -->
-        <select id="weekSelect" onchange="changeWeek()" class="bg-slate-950 border border-slate-800 text-amber-400 font-bold text-xs rounded-lg px-2.5 py-1 outline-none focus:border-amber-500 cursor-pointer">
-          <option value="Week 3" selected>WEEK 3</option>
-          <option value="Week01">WEEK 1</option>
-        </select>
-
-        <!-- VIEW TOGGLE -->
-        <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
-          <button id="tabWeek" onclick="switchView('week')" class="px-2.5 py-1 rounded text-xs font-bold transition bg-amber-500 text-black">WEEK</button>
-          <button id="tabSeason" onclick="switchView('season')" class="px-2.5 py-1 rounded text-xs font-bold transition text-slate-400 hover:text-white">SEASON</button>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex items-center space-x-3">
+          <!-- CREST -->
+          <svg width="40" height="44" viewBox="0 0 40 44" class="flex-shrink-0" aria-label="League crest">
+            <path d="M20 1 L37 8 V22 C37 33 29 40 20 43 C11 40 3 33 3 22 V8 Z" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+            <path d="M20 5 L33 10.5 V22 C33 30.5 27 36.5 20 39 C13 36.5 7 30.5 7 22 V10.5 Z" fill="none" stroke="#f59e0b" stroke-width="0.75" opacity="0.5"/>
+            <text x="20" y="24" text-anchor="middle" font-size="13" fill="#f59e0b">🏈</text>
+            <text x="20" y="34" text-anchor="middle" font-size="7" font-weight="800" fill="#e2e8f0" letter-spacing="1">XII</text>
+          </svg>
+          <div>
+            <div class="font-black text-lg sm:text-xl tracking-wider uppercase text-white leading-none">Gridiron <span class="text-amber-400">Auction</span></div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-[0.2em] mt-1">12th Season &middot; Weekly Points Race</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <span id="liveIndicator" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 items-center gap-1.5 hidden sm:inline-flex">
+            <span id="liveDot" class="h-2 w-2 rounded-full bg-slate-500"></span><span id="liveLabel">Idle</span>
+          </span>
+          <select id="weekSelect" onchange="changeWeek()" class="bg-slate-950 border border-slate-800 text-amber-400 font-bold text-xs rounded-lg px-2.5 py-1.5 outline-none focus:border-amber-500 cursor-pointer">
+            <option>Loading…</option>
+          </select>
+          <button onclick="fetchData()" class="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+            <i id="refreshIcon" class="fa-solid fa-rotate"></i><span class="hidden sm:inline">Refresh</span>
+          </button>
         </div>
       </div>
-
-      <div class="flex items-center space-x-3">
-        <div id="syncTime" class="text-xs text-slate-400 hidden sm:block">Syncing...</div>
-        <button id="refreshBtn" onclick="fetchData()" class="px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
-          <i id="refreshIcon" class="fa-solid fa-rotate"></i>
-          <span class="hidden sm:inline">Refresh</span>
-        </button>
+      <div class="flex items-center justify-between mt-2">
+        <div id="syncTime" class="text-[11px] text-slate-500">Syncing…</div>
+        <div class="text-[11px] text-slate-600 font-mono">STAGING BUILD</div>
       </div>
     </div>
+    <!-- TABS -->
+    <nav class="border-t border-slate-800/70">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1.5 py-2 overflow-x-auto">
+        <button id="tabBtn-scoreboard" onclick="switchTab('scoreboard')" class="tab-btn active px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap">Live Scoreboard</button>
+        <button id="tabBtn-saturday" onclick="switchTab('saturday')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-slate-400 whitespace-nowrap">Saturday</button>
+        <button id="tabBtn-season" onclick="switchTab('season')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-slate-400 whitespace-nowrap">Season</button>
+        <button id="tabBtn-draft" onclick="switchTab('draft')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-slate-400 whitespace-nowrap">Draft Results</button>
+        <button id="tabBtn-history" onclick="switchTab('history')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-slate-400 whitespace-nowrap">League History</button>
+      </div>
+    </nav>
   </header>
 
-  <!-- MAIN CONTAINER -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    <!-- WEEK VIEW -->
-    <div id="weekViewSection" class="space-y-8">
+    <!-- ============ TAB: LIVE SCOREBOARD ============ -->
+    <div id="view-scoreboard" class="space-y-8">
 
       <!-- HERO STATS -->
       <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex items-center space-x-3">
-          <div class="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-trophy"></i>
-          </div>
-          <div>
-            <div class="text-[11px] font-medium text-slate-400 uppercase">Leader</div>
-            <div id="statLeader" class="text-base font-bold text-white">--</div>
-          </div>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+          <div class="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg"><i class="fa-solid fa-trophy"></i></div>
+          <div><div class="text-[11px] font-medium text-slate-400 uppercase">Leader</div><div id="statLeader" class="text-base font-bold text-white">--</div></div>
         </div>
-        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex items-center space-x-3">
-          <div class="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-fire"></i>
-          </div>
-          <div>
-            <div class="text-[11px] font-medium text-slate-400 uppercase">High Score</div>
-            <div id="statHighScore" class="text-base font-bold text-white">--</div>
-          </div>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+          <div class="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg"><i class="fa-solid fa-fire"></i></div>
+          <div><div class="text-[11px] font-medium text-slate-400 uppercase">High Score</div><div id="statHighScore" class="text-base font-bold text-white">--</div></div>
         </div>
-        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex items-center space-x-3">
-          <div class="h-10 w-10 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-clock"></i>
-          </div>
-          <div>
-            <div class="text-[11px] font-medium text-slate-400 uppercase">Live Games</div>
-            <div id="statLiveCount" class="text-base font-bold text-white">--</div>
-          </div>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+          <div class="h-10 w-10 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center text-lg"><i class="fa-solid fa-clock"></i></div>
+          <div><div class="text-[11px] font-medium text-slate-400 uppercase">Live Games</div><div id="statLiveCount" class="text-base font-bold text-white">--</div></div>
         </div>
-        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex items-center space-x-3">
-          <div class="h-10 w-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-chart-line"></i>
-          </div>
-          <div>
-            <div class="text-[11px] font-medium text-slate-400 uppercase">Max Ceiling</div>
-            <div id="statMaxCeiling" class="text-base font-bold text-white">--</div>
-          </div>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+          <div class="h-10 w-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg"><i class="fa-solid fa-chart-line"></i></div>
+          <div><div class="text-[11px] font-medium text-slate-400 uppercase">Max Ceiling</div><div id="statMaxCeiling" class="text-base font-bold text-white">--</div></div>
         </div>
       </section>
 
-      <!-- $103 WEEKLY PAYOUT BANNER -->
-      <section onclick="switchView('season')" class="bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/30 rounded-xl px-5 py-3.5 flex items-center justify-between gap-3 cursor-pointer hover:border-amber-500/60 transition">
-        <div class="flex items-center space-x-3">
-          <span class="text-2xl">🏆</span>
-          <div>
-            <div class="text-sm font-bold text-white">$103 on the line this week</div>
-            <div class="text-[11px] text-slate-400">Highest weekly score takes the pot — ties split it evenly. <span class="text-amber-400 font-semibold underline underline-offset-2">See the ledger</span></div>
-          </div>
+      <!-- WEEKLY CASH PRIZE — the only $103 callout on the page -->
+      <section class="bg-amber-400 rounded-xl p-5 sm:p-6 flex items-center justify-between gap-4 shadow-[0_0_40px_rgba(245,158,11,0.25)]">
+        <div>
+          <div class="text-[11px] font-extrabold uppercase tracking-[0.2em] text-amber-900">Weekly Cash Prize</div>
+          <div class="text-4xl sm:text-5xl font-black text-slate-950 tracking-tight">$103</div>
+          <div class="text-xs font-semibold text-amber-900 mt-1">Top score takes the week</div>
         </div>
-        <i class="fa-solid fa-chevron-right text-amber-400/70 flex-shrink-0"></i>
+        <i class="fa-solid fa-sack-dollar text-5xl sm:text-6xl text-amber-900/40"></i>
       </section>
 
-      <!-- LIVE LEADERBOARD -->
+      <!-- LEADERBOARD -->
       <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
         <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/90">
           <div>
             <h2 class="text-lg font-bold text-white">Live Leaderboard</h2>
-            <p class="text-xs text-slate-400">Current points vs remaining point upside</p>
+            <p class="text-xs text-slate-400">Points race &middot; current week vs remaining upside</p>
           </div>
-          <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5">
-            <span class="h-2 w-2 rounded-full bg-emerald-400 live-pulse"></span>
-            <span>Live Tracking</span>
+          <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+            <span class="h-2 w-2 rounded-full bg-emerald-400 live-pulse"></span><span>Live Tracking</span>
           </span>
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
+          <table class="w-full text-left border-collapse min-w-[640px]">
             <thead>
               <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-950/40 border-b border-slate-800">
                 <th class="py-3 px-4 text-center w-12">Rank</th>
                 <th class="py-3 px-4">Owner</th>
                 <th class="py-3 px-4 text-right">Points</th>
                 <th class="py-3 px-4 w-48 hidden md:table-cell">Ceiling Progress</th>
-                <th class="py-3 px-4 text-center hidden sm:table-cell">Record</th>
-                <th class="py-3 px-4 text-center hidden sm:table-cell">Active</th>
-                <th class="py-3 px-4 text-center hidden sm:table-cell">Rem</th>
-                <th class="py-3 px-4 text-right hidden sm:table-cell">Max</th>
+                <th class="py-3 px-4 text-center">Record</th>
+                <th class="py-3 px-4 text-center">Active</th>
+                <th class="py-3 px-4 text-center">Rem</th>
+                <th class="py-3 px-4 text-right">Max</th>
               </tr>
             </thead>
             <tbody id="leaderboardBody" class="divide-y divide-slate-800/60 text-sm">
-              <tr>
-                <td colspan="8" class="py-12 text-center text-slate-500">
-                  <i class="fa-solid fa-spinner fa-spin text-xl mb-2"></i>
-                  <p>Loading live leaderboard...</p>
-                </td>
-              </tr>
+              <tr><td colspan="8" class="py-12 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-xl mb-2"></i><p>Loading live leaderboard…</p></td></tr>
             </tbody>
           </table>
         </div>
-        <!-- CEILING PROGRESS LEGEND -->
-        <div class="px-5 py-3 border-t border-slate-800/60 bg-slate-950/30">
-          <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-slate-400">
-            <span class="flex items-center space-x-1.5">
-              <span class="inline-block w-6 h-2 rounded-full bg-gradient-to-r from-amber-500 to-emerald-400"></span>
-              <span>Points banked</span>
-            </span>
-            <span class="flex items-center space-x-1.5">
-              <span class="inline-block w-6 h-2 rounded-full bg-slate-700"></span>
-              <span>Max ceiling</span>
-            </span>
-            <span class="text-slate-500">Bars scale to the week's highest ceiling.</span>
-          </div>
-          <p class="mt-1.5 text-[11px] leading-relaxed text-slate-500">
-            <span class="font-semibold text-slate-400">Max</span> = points banked + 10 per live &amp; remaining team + remaining upset bonus.
-          </p>
-        </div>
       </section>
 
-     <!-- SPOTLIGHT: BEST WINS & CHOKE JOBS -->
+      <!-- SPOTLIGHT: BEST WINS & CHOKE JOBS -->
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <!-- TOP 3 BEST WINS -->
         <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl">
-          <div class="flex items-center space-x-2 mb-3">
+          <div class="flex items-center gap-2 mb-3">
             <i class="fa-solid fa-bolt text-amber-400 text-base"></i>
             <h2 class="text-sm font-bold text-white uppercase tracking-wider">Top 3 Best Wins</h2>
           </div>
-          <div id="bestWinsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            <div class="col-span-full py-4 text-center text-slate-500 text-xs">Waiting on completed games...</div>
+          <div id="bestWinsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div class="col-span-full py-4 text-center text-slate-500 text-xs">Waiting on completed games…</div>
           </div>
         </div>
-
-        <!-- TOP 3 CHOKE JOBS -->
         <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-xl">
-          <div class="flex items-center space-x-2 mb-3">
+          <div class="flex items-center gap-2 mb-3">
             <i class="fa-solid fa-skull text-rose-400 text-base"></i>
             <h2 class="text-sm font-bold text-white uppercase tracking-wider">Top 3 Choke Jobs</h2>
           </div>
-          <div id="chokeJobsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          <div id="chokeJobsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div class="col-span-full py-4 text-center text-slate-500 text-xs">No favorites have choked yet.</div>
           </div>
         </div>
       </section>
 
-      <!-- MATCHUP CARDS WITH LOGOS, SCORES, COVER INDICATOR, LAST PLAY -->
+      <!-- MATCHUP CARDS + FILTERS -->
       <section class="space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 class="text-lg font-bold text-white">Rosters & Live Matchups</h2>
-            <p class="text-xs text-slate-400">Team schedules, live score spreads, and channel info</p>
+            <h2 class="text-lg font-bold text-white">Rosters &amp; Live Matchups</h2>
+            <p class="text-xs text-slate-400"><span id="gameCount">–</span> games shown &middot; lines, scores, and channel info</p>
           </div>
-
-          <!-- FILTERS: STATUS BUTTONS + OWNER DROPDOWN -->
           <div class="flex flex-wrap items-center gap-2">
             <div class="flex bg-slate-900 border border-slate-800 p-0.5 rounded-lg text-xs" id="statusFilterGroup">
               <button onclick="setStatusFilter('ALL')" id="filterBtnALL" class="px-2.5 py-1 rounded font-semibold bg-amber-500 text-black transition">ALL</button>
-              <button onclick="setStatusFilter('LIVE')" id="filterBtnLIVE" class="px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition flex items-center space-x-1">
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 mr-1"></span>
-                <span>LIVE</span>
+              <button onclick="setStatusFilter('LIVE')" id="filterBtnLIVE" class="px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition flex items-center">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 mr-1"></span><span>LIVE</span>
                 <span id="badgeLiveCount" class="ml-1 text-[10px] px-1 rounded bg-slate-800 text-slate-300">0</span>
               </button>
               <button onclick="setStatusFilter('UPCOMING')" id="filterBtnUPCOMING" class="px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition">UPCOMING</button>
               <button onclick="setStatusFilter('FINAL')" id="filterBtnFINAL" class="px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition">FINAL</button>
             </div>
-
             <select id="ownerFilter" onchange="renderMatchups()" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 outline-none focus:border-amber-500">
               <option value="ALL">All Owners</option>
             </select>
           </div>
         </div>
-
         <div id="matchupsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </section>
     </div>
 
-    <!-- SEASON STANDINGS VIEW -->
-    <div id="seasonViewSection" class="hidden space-y-8">
+    <!-- ============ TAB: SATURDAY ============ -->
+    <div id="view-saturday" class="hidden space-y-8">
       <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
         <div class="p-5 border-b border-slate-800 bg-slate-900/90">
-          <h2 class="text-lg font-bold text-white">Cumulative Season Standings</h2>
-          <p id="seasonSubheading" class="text-xs text-slate-400">Total league points accrued across the season</p>
+          <h2 class="text-lg font-bold text-white">Saturday Board</h2>
+          <p class="text-xs text-slate-400">Every owner's record, games left, and max-points ceiling for the week</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[560px]">
+            <thead>
+              <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-950/40 border-b border-slate-800">
+                <th class="py-3.5 px-4 text-center w-16">Rank</th>
+                <th class="py-3.5 px-4">Owner</th>
+                <th class="py-3.5 px-4 text-right">Points</th>
+                <th class="py-3.5 px-4 text-center">Record</th>
+                <th class="py-3.5 px-4 text-center">Games Left</th>
+                <th class="py-3.5 px-4 text-right">Max Ceiling</th>
+              </tr>
+            </thead>
+            <tbody id="saturdayBody" class="divide-y divide-slate-800/60 text-sm">
+              <tr><td colspan="6" class="py-12 text-center text-slate-500">Loading Saturday board…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ TAB: SEASON ============ -->
+    <div id="view-season" class="hidden space-y-8">
+      <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+        <div class="p-5 border-b border-slate-800 bg-slate-900/90">
+          <h2 class="text-lg font-bold text-white">Season Standings</h2>
+          <p class="text-xs text-slate-400">Total points banked across the season</p>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
@@ -241,138 +248,237 @@
               <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-950/40 border-b border-slate-800">
                 <th class="py-3.5 px-4 text-center w-20">Rank</th>
                 <th class="py-3.5 px-6">Owner</th>
-                <th class="py-3.5 px-6 text-right">Total Season Points</th>
+                <th class="py-3.5 px-6 text-right">Total Points</th>
               </tr>
             </thead>
-            <tbody id="standingsBody" class="divide-y divide-slate-800/60 text-sm"></tbody>
+            <tbody id="standingsBody" class="divide-y divide-slate-800/60 text-sm">
+              <tr><td colspan="3" class="py-12 text-center text-slate-500">Loading season standings…</td></tr>
+            </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- TREND CHART -->
+      <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+        <div class="p-5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-white">Weekly Points Trend</h2>
+            <p class="text-xs text-slate-400">Every owner's weekly score, all season</p>
+          </div>
+          <i class="fa-solid fa-chart-line text-amber-400"></i>
+        </div>
+        <div class="p-4 sm:p-6">
+          <canvas id="trendCanvas"></canvas>
+          <div id="trendLegend" class="flex flex-wrap gap-x-4 gap-y-1.5 mt-4 text-xs text-slate-300"></div>
+          <div id="trendNote" class="text-[11px] text-slate-500 mt-2">Loading weekly data…</div>
         </div>
       </section>
 
       <!-- PAYOUT LEDGER -->
       <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
-        <div class="p-5 border-b border-slate-800 bg-slate-900/90 flex justify-between items-center">
-          <div>
-            <h2 class="text-lg font-bold text-white">Payout Ledger</h2>
-            <p class="text-xs text-slate-400">$103 weekly prize — ties split evenly</p>
-          </div>
-          <span id="payoutSeasonTotal" class="text-xs font-mono font-bold text-amber-400 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">$0.00 paid</span>
+        <div class="p-5 border-b border-slate-800 bg-slate-900/90">
+          <h2 class="text-lg font-bold text-white">Payout Ledger</h2>
+          <p class="text-xs text-slate-400">$200 buy-in &middot; net positions across final weeks only</p>
         </div>
+        <div class="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Weekly Winners</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead><tr class="text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-800">
+                  <th class="py-2 pr-3">Week</th><th class="py-2 pr-3">Winner</th><th class="py-2 pr-3 text-right">Score</th><th class="py-2 text-right">Status</th>
+                </tr></thead>
+                <tbody id="payoutWeeksBody" class="divide-y divide-slate-800/60"></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Net Positions</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead><tr class="text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-800">
+                  <th class="py-2 pr-3">Owner</th><th class="py-2 pr-3 text-right">Won</th><th class="py-2 text-right">Net</th>
+                </tr></thead>
+                <tbody id="netLedgerBody" class="divide-y divide-slate-800/60"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ TAB: DRAFT RESULTS ============ -->
+    <div id="view-draft" class="hidden space-y-8">
+      <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+        <div class="p-5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-white">Draft Results</h2>
+            <p class="text-xs text-slate-400">Every pick, price paid, and return on investment</p>
+          </div>
+          <i class="fa-solid fa-gavel text-amber-400"></i>
+        </div>
+        <div id="draftNote" class="p-5 text-sm text-slate-400">Loading draft data…</div>
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
+          <table class="w-full text-left border-collapse min-w-[680px]">
             <thead>
               <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-950/40 border-b border-slate-800">
-                <th class="py-3 px-4">Week</th>
-                <th class="py-3 px-4">Winner(s)</th>
-                <th class="py-3 px-4 text-right">High Score</th>
-                <th class="py-3 px-4 text-right">Payout</th>
-                <th class="py-3 px-4 text-center">Status</th>
+                <th class="py-3 px-4 text-center w-14">#</th>
+                <th class="py-3 px-4">Team</th>
+                <th class="py-3 px-4 text-right">Price</th>
+                <th class="py-3 px-4">Owner</th>
+                <th class="py-3 px-4 text-center">Conf</th>
+                <th class="py-3 px-4 text-right">ROI <span class="normal-case font-medium text-slate-500">(pts/$)</span></th>
               </tr>
             </thead>
-            <tbody id="payoutsBody" class="divide-y divide-slate-800/60 text-sm"></tbody>
+            <tbody id="draftBody" class="divide-y divide-slate-800/60 text-sm"></tbody>
           </table>
         </div>
-        <div class="p-5 border-t border-slate-800/60 bg-slate-950/30">
-          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">Season net · final weeks only · $200 buy-in</div>
-          <div id="payoutTotals" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2"></div>
+      </section>
+    </div>
+
+    <!-- ============ TAB: LEAGUE HISTORY ============ -->
+    <div id="view-history" class="hidden space-y-8">
+      <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+        <div class="p-5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-white">Champions Wall</h2>
+            <p class="text-xs text-slate-400">Twelve seasons of glory, newest first</p>
+          </div>
+          <i class="fa-solid fa-crown text-amber-400"></i>
         </div>
+        <div id="historyList" class="divide-y divide-slate-800/60"></div>
+        <div class="p-4 text-[11px] text-slate-600">Historical champions shown as recorded — final roll call to be confirmed.</div>
       </section>
     </div>
 
   </main>
 
-  <!-- FOOTER: visible last-sync on all screen sizes -->
-  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-    <div class="border-t border-slate-800/60 pt-4 flex items-center justify-between text-[11px] text-slate-500">
-      <span>🏈 CFB Fantasy League · 12th season</span>
-      <span id="syncTimeFooter">Syncing...</span>
+  <footer class="border-t border-slate-800 mt-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500">
+      <span>Gridiron Auction &middot; 12th season &middot; staging build</span>
+      <span id="footSync">—</span>
     </div>
   </footer>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwCPGrxrVeD2schUZYtIVwRNpB51EQcDy_ope7j1mMc-YL29yzw5FhaF9iK1Jl6fvsT/exec";
+    // ============================================================================
+    // API CONFIG
+    // ============================================================================
+    const API_URL = "https://script.google.com/macros/s/AKfycbyykW5vsYkEoAFCiG0oOE6cM6UxrkcD7Q-1wr3QuVWxpRZhHm3X--80z1DuqtA3TI-B/exec";
+    // STAGING: after Patrick deploys the /dev Apps Script version, replace the URL
+    // above with the /dev URL. Swap back to /exec for production.
 
-    let state = {
-      // Fallback only — init() below asks the API for the current week on load.
-      currentWeek: "Week 2",
+    const BUY_IN = 200;
+
+    const state = {
+      currentWeek: "",
       availableWeeks: [],
       leaderboard: [],
       bestWins: [],
       standings: [],
       matchups: [],
       payouts: [],
-      statusFilter: "ALL"
+      draftResults: null,   // stays null until the API serves it
+      statusFilter: "ALL",
+      activeTab: "scoreboard",
+      trendCache: {},       // rawWeek -> leaderboard array
+      trendLoaded: false
     };
 
-    // "Week01" -> "Week 1", "Week 3" -> "Week 3" — for human-readable labels.
-    function fmtWeekLabel(weekName) {
-      const num = parseInt((weekName || "").replace(/\D/g, ""), 10);
-      return isNaN(num) ? (weekName || "") : `Week ${num}`;
+    // ---------- small helpers ----------
+    function weekNum(w) {
+      const n = parseInt((w || "").toString().replace(/\D/g, ""), 10);
+      return isNaN(n) ? 0 : n;
+    }
+    function prettyWeek(w) {
+      const n = weekNum(w);
+      return n ? "Week " + n : (w || "");
+    }
+    function cleanName(s) {
+      return (s || "").toString().toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+    // Normalized team-name match: lowercase, strip parentheticals like "(Fla.)",
+    // strip punctuation. Lets "Miami (Fla.)" match "Miami".
+    function normTeam(s) {
+      return (s || "").toString().toLowerCase()
+        .replace(/\(.*?\)/g, "")
+        .replace(/[^a-z0-9]/g, "");
+    }
+    function esc(s) {
+      return (s === null || s === undefined) ? "" : String(s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
     }
 
-    function switchView(view) {
-      const weekSection = document.getElementById("weekViewSection");
-      const seasonSection = document.getElementById("seasonViewSection");
-      const tabWeek = document.getElementById("tabWeek");
-      const tabSeason = document.getElementById("tabSeason");
-
-      if (view === 'season') {
-        weekSection.classList.add("hidden");
-        seasonSection.classList.remove("hidden");
-        tabSeason.className = "px-2.5 py-1 rounded text-xs font-bold transition bg-amber-500 text-black";
-        tabWeek.className = "px-2.5 py-1 rounded text-xs font-bold transition text-slate-400 hover:text-white";
-        renderStandings();
-        renderPayouts();
-      } else {
-        seasonSection.classList.add("hidden");
-        weekSection.classList.remove("hidden");
-        tabWeek.className = "px-2.5 py-1 rounded text-xs font-bold transition bg-amber-500 text-black";
-        tabSeason.className = "px-2.5 py-1 rounded text-xs font-bold transition text-slate-400 hover:text-white";
-      }
+    // ---------- tabs ----------
+    const TABS = ["scoreboard", "saturday", "season", "draft", "history"];
+    function switchTab(tab) {
+      state.activeTab = tab;
+      TABS.forEach(t => {
+        document.getElementById("view-" + t).classList.toggle("hidden", t !== tab);
+        const btn = document.getElementById("tabBtn-" + t);
+        btn.classList.toggle("active", t === tab);
+        btn.classList.toggle("text-slate-400", t !== tab);
+      });
+      if (tab === "season" && !state.trendLoaded) loadTrendData();
+      if (tab === "draft") renderDraft();
     }
 
+    // ---------- filters ----------
     function setStatusFilter(filter) {
       state.statusFilter = filter;
-      const filters = ['ALL', 'LIVE', 'UPCOMING', 'FINAL'];
-      filters.forEach(f => {
-        const btn = document.getElementById(`filterBtn${f}`);
+      ["ALL", "LIVE", "UPCOMING", "FINAL"].forEach(f => {
+        const btn = document.getElementById("filterBtn" + f);
         if (f === filter) {
-          btn.className = "px-2.5 py-1 rounded font-semibold bg-amber-500 text-black transition flex items-center space-x-1";
+          btn.className = "px-2.5 py-1 rounded font-semibold bg-amber-500 text-black transition flex items-center";
         } else {
-          btn.className = "px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition flex items-center space-x-1";
+          btn.className = "px-2.5 py-1 rounded font-semibold text-slate-400 hover:text-white transition flex items-center";
         }
       });
       renderMatchups();
     }
 
     async function changeWeek() {
-      const select = document.getElementById("weekSelect");
-      state.currentWeek = select.value;
+      state.currentWeek = document.getElementById("weekSelect").value;
       await fetchData();
     }
 
+    // ---------- data ----------
+    async function apiGet(week) {
+      const ts = Date.now();
+      const url = week
+        ? API_URL + "?week=" + encodeURIComponent(week) + "&_t=" + ts
+        : API_URL + "?_t=" + ts;
+      const res = await fetch(url, { method: "GET", redirect: "follow", cache: "no-store" });
+      const data = await res.json();
+      if (data && data.error) throw new Error(data.error);
+      return data;
+    }
+
     async function fetchData() {
-      const refreshIcon = document.getElementById("refreshIcon");
-      if (refreshIcon) refreshIcon.classList.add("fa-spin");
-
+      const icon = document.getElementById("refreshIcon");
+      if (icon) icon.classList.add("fa-spin");
       try {
-        // Cache-busting timestamp prevents browser and GitHub Pages 304 caching
-        const timestamp = new Date().getTime();
-        const fetchUrl = `${API_URL}?week=${encodeURIComponent(state.currentWeek)}&_t=${timestamp}`;
-        const res = await fetch(fetchUrl, { method: "GET", redirect: "follow", cache: "no-store" });
-        const data = await res.json();
-
-        if (data.error) throw new Error(data.error);
-
+        const data = await apiGet(state.currentWeek || undefined);
+        if (data.currentWeek) state.currentWeek = data.currentWeek;
+        state.availableWeeks = data.availableWeeks || [];
         state.leaderboard = data.leaderboard || [];
         state.bestWins = data.bestWins || [];
         state.standings = data.standings || [];
         state.matchups = data.matchups || [];
         state.payouts = data.payouts || [];
-        state.availableWeeks = data.availableWeeks || [];
+        // draftResults arrives only after the /dev Apps Script add-on is deployed.
+        state.draftResults = Array.isArray(data.draftResults) ? data.draftResults : null;
+
+        // cache this week's leaderboard for the trend chart
+        if (state.currentWeek && state.leaderboard.length) {
+          state.trendCache[state.currentWeek] = state.leaderboard;
+        }
 
         renderWeekDropdown();
+        renderHeaderState();
         renderLeaderboard();
+        renderSaturday();
         renderBestWins();
         renderChokeJobs();
         populateOwnerFilter();
@@ -380,475 +486,549 @@
         renderStandings();
         renderPayouts();
         updateStats();
+        if (state.activeTab === "draft") renderDraft();
+        if (state.trendLoaded) renderTrend();
 
         const now = new Date();
-        const syncText = `Last synced: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
-        const syncEl = document.getElementById("syncTime");
-        if (syncEl) syncEl.innerText = syncText;
-        const syncFooter = document.getElementById("syncTimeFooter");
-        if (syncFooter) syncFooter.innerText = syncText;
+        const t = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        document.getElementById("syncTime").innerText = "Last synced: " + t + " · " + prettyWeek(state.currentWeek);
+        document.getElementById("footSync").innerText = "Synced " + t;
       } catch (err) {
         console.error("Fetch failed:", err);
+        document.getElementById("syncTime").innerText = "Sync failed — retrying…";
       } finally {
-        if (refreshIcon) refreshIcon.classList.remove("fa-spin");
+        if (icon) icon.classList.remove("fa-spin");
       }
     }
 
-   function renderWeekDropdown() {
-      const select = document.getElementById("weekSelect");
-      if (!select || !state.availableWeeks.length) return;
+    function renderWeekDropdown() {
+      const sel = document.getElementById("weekSelect");
+      if (!sel || !state.availableWeeks.length) return;
+      const weeks = [...state.availableWeeks].sort((a, b) => weekNum(a) - weekNum(b));
+      const cur = normWeekKey(state.currentWeek);
+      sel.innerHTML = weeks.map(w =>
+        '<option value="' + esc(w) + '"' + (normWeekKey(w) === cur ? " selected" : "") + ">" +
+        esc(prettyWeek(w)).toUpperCase() + "</option>"
+      ).join("");
+    }
+    function normWeekKey(w) { return (w || "").toString().toLowerCase().replace(/\s+/g, ""); }
 
-      select.innerHTML = state.availableWeeks.map(w => {
-        const cleanW = w.toLowerCase().replace(/\s+/g, "");
-        const cleanCurrent = state.currentWeek.toLowerCase().replace(/\s+/g, "");
-        const isSelected = cleanW === cleanCurrent ? "selected" : "";
-        const num = w.replace(/\D/g, "");
-        return `<option value="${w}" ${isSelected}>WEEK ${parseInt(num, 10)}</option>`;
-      }).join("");
+    function renderHeaderState() {
+      const liveCount = state.matchups.filter(m => m.outcome === "In Progress").length;
+      const dot = document.getElementById("liveDot");
+      const label = document.getElementById("liveLabel");
+      if (liveCount > 0) {
+        dot.className = "h-2 w-2 rounded-full bg-emerald-400 live-pulse";
+        label.innerText = "LIVE · " + liveCount + " game" + (liveCount === 1 ? "" : "s");
+        document.getElementById("liveIndicator").className = "text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 items-center gap-1.5 hidden sm:inline-flex";
+      } else {
+        dot.className = "h-2 w-2 rounded-full bg-slate-500";
+        label.innerText = "Idle";
+        document.getElementById("liveIndicator").className = "text-[11px] px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 items-center gap-1.5 hidden sm:inline-flex";
+      }
     }
 
+    // ---------- leaderboard (gold treatment for the leader) ----------
     function renderLeaderboard() {
       const tbody = document.getElementById("leaderboardBody");
-      if (!tbody || !state.leaderboard.length) return;
-
-      const highestCeiling = Math.max(...state.leaderboard.map(r => r.maxCeiling || 1), 1);
-
+      if (!tbody) return;
+      if (!state.leaderboard.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="py-12 text-center text-slate-500">No leaderboard data for this week yet.</td></tr>';
+        return;
+      }
+      const top = Math.max(...state.leaderboard.map(r => r.maxCeiling || 1), 1);
       tbody.innerHTML = state.leaderboard.map((row, idx) => {
-        const isLeader = idx === 0;
-        const rankColor = isLeader ? "text-amber-400 font-bold" : idx === 1 ? "text-slate-300 font-bold" : idx === 2 ? "text-amber-600 font-bold" : "text-slate-400";
-        const currentPct = Math.min(100, Math.round((row.livePts / highestCeiling) * 100));
-        const ceilingPct = Math.min(100, Math.round((row.maxCeiling / highestCeiling) * 100));
-
-        return `
-          <tr class="hover:bg-slate-800/40 transition ${isLeader ? 'bg-amber-400/[0.07]' : ''}">
-            <td class="py-3 px-4 text-center font-mono ${rankColor}">${row.rank}</td>
-            <td class="py-3 px-4 font-semibold text-white">${isLeader ? '👑 ' : ''}${row.owner}</td>
-            <td class="py-3 px-4 text-right font-mono font-bold text-amber-400">${row.livePts}</td>
-            <td class="py-3 px-4 hidden md:table-cell">
-              <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden relative">
-                <div class="bg-slate-700 h-full absolute left-0 top-0 rounded-full" style="width: ${ceilingPct}%"></div>
-                <div class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full absolute left-0 top-0 rounded-full" style="width: ${currentPct}%"></div>
-              </div>
-            </td>
-            <td class="py-3 px-4 text-center font-mono text-slate-300 hidden sm:table-cell">${row.record}</td>
-            <td class="py-3 px-4 text-center hidden sm:table-cell">
-              ${row.inProgress > 0
-                ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                     <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 live-pulse mr-1.5"></span>${row.inProgress}
-                   </span>`
-                : `<span class="text-slate-500 font-mono">0</span>`}
-            </td>
-            <td class="py-3 px-4 text-center font-mono text-slate-400 hidden sm:table-cell">${row.remaining}</td>
-            <td class="py-3 px-4 text-right font-mono font-bold text-slate-200 hidden sm:table-cell">${row.maxCeiling}</td>
-          </tr>
-        `;
+        const rankColor = idx === 0 ? "text-amber-300 font-black" : idx === 1 ? "text-slate-200 font-bold" : idx === 2 ? "text-amber-600 font-bold" : "text-slate-400";
+        const curPct = Math.min(100, Math.round(((row.livePts || 0) / top) * 100));
+        const ceilPct = Math.min(100, Math.round(((row.maxCeiling || 0) / top) * 100));
+        return '<tr class="hover:bg-slate-800/40 transition' + (idx === 0 ? " gold-row" : "") + '">' +
+          '<td class="py-3 px-4 text-center font-mono ' + rankColor + '">' + (idx === 0 ? '<i class="fa-solid fa-crown mr-1"></i>' : "") + row.rank + "</td>" +
+          '<td class="py-3 px-4 font-semibold ' + (idx === 0 ? "text-amber-200" : "text-white") + '">' + esc(row.owner) + "</td>" +
+          '<td class="py-3 px-4 text-right font-mono font-bold ' + (idx === 0 ? "text-amber-300" : "text-amber-400") + '">' + row.livePts + "</td>" +
+          '<td class="py-3 px-4 hidden md:table-cell"><div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden relative">' +
+            '<div class="bg-slate-700 h-full absolute left-0 top-0 rounded-full" style="width:' + ceilPct + '%"></div>' +
+            '<div class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full absolute left-0 top-0 rounded-full" style="width:' + curPct + '%"></div></div></td>' +
+          '<td class="py-3 px-4 text-center font-mono text-slate-300">' + esc(row.record || "") + "</td>" +
+          '<td class="py-3 px-4 text-center">' + (row.inProgress > 0
+            ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 live-pulse mr-1.5"></span>' + row.inProgress + "</span>"
+            : '<span class="text-slate-500 font-mono">0</span>') + "</td>" +
+          '<td class="py-3 px-4 text-center font-mono text-slate-400">' + (row.remaining || 0) + "</td>" +
+          '<td class="py-3 px-4 text-right font-mono font-bold text-slate-200">' + (row.maxCeiling || 0) + "</td>" +
+        "</tr>";
       }).join("");
     }
 
-    function renderBestWins() {
-      const container = document.getElementById("bestWinsContainer");
-      if (!container) return;
-
-      if (!state.bestWins.length) {
-        container.innerHTML = `<div class="col-span-full py-4 text-center text-slate-500 text-xs">Waiting on completed games...</div>`;
+    // ---------- saturday board ----------
+    function renderSaturday() {
+      const tbody = document.getElementById("saturdayBody");
+      if (!tbody) return;
+      if (!state.leaderboard.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center text-slate-500">No Saturday data for this week yet.</td></tr>';
         return;
       }
-
-      container.innerHTML = state.bestWins.slice(0, 3).map((win, idx) => `
-        <div class="bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-lg p-2.5 relative overflow-hidden transition">
-          <div class="flex items-center justify-between text-xs mb-1">
-            <span class="font-bold text-slate-400 uppercase text-[10px]">#${idx + 1} Best Win</span>
-            <span class="font-mono font-black text-emerald-400">+${win.points} pts</span>
-          </div>
-          <div class="font-bold text-white text-sm truncate">${win.team}</div>
-          <div class="text-[11px] text-slate-400 truncate">vs ${win.opponent}</div>
-          <div class="mt-1.5 text-[10px] font-semibold text-amber-400/90 truncate">${win.owner}</div>
-        </div>
-      `).join("");
+      tbody.innerHTML = state.leaderboard.map((row, idx) => {
+        const rankColor = idx === 0 ? "text-amber-300 font-black" : "text-slate-400";
+        return '<tr class="hover:bg-slate-800/40 transition' + (idx === 0 ? " gold-row" : "") + '">' +
+          '<td class="py-3.5 px-4 text-center font-mono ' + rankColor + '">' + row.rank + "</td>" +
+          '<td class="py-3.5 px-4 font-semibold ' + (idx === 0 ? "text-amber-200" : "text-white") + '">' + esc(row.owner) + "</td>" +
+          '<td class="py-3.5 px-4 text-right font-mono font-bold text-amber-400">' + row.livePts + "</td>" +
+          '<td class="py-3.5 px-4 text-center font-mono text-slate-300">' + esc(row.record || "") + "</td>" +
+          '<td class="py-3.5 px-4 text-center font-mono text-slate-300">' + (row.remaining || 0) + "</td>" +
+          '<td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">' + (row.maxCeiling || 0) + "</td>" +
+        "</tr>";
+      }).join("");
     }
 
-    // Shared spread parser: who is favored and by how much?
-    // Returns { favored: 'team' | 'opp' | null, spread: number }.
-    // Handles "+7.5" (my team is the dog), "TA&M -16.5" (named favorite —
-    // the character class here includes & and . so TA&M parses; this is
-    // display-side only and separate from the parked Apps Script column-P
-    // regex), and bare "-7.5" (sheet convention: my team favored).
-    function parseFavoritism(m) {
-      const rawLine = (m.gameLine || m.openLine || "").toString().trim();
-      if (!rawLine) return { favored: null, spread: 0 };
-      const upper = rawLine.toUpperCase();
-      if (upper === "PK" || upper === "EVEN") return { favored: null, spread: 0 };
-
-      const numMatch = rawLine.match(/(\d+(\.\d+)?)/);
-      const spread = numMatch ? parseFloat(numMatch[1]) : 0;
-      if (!(spread > 0)) return { favored: null, spread: 0 };
-
-      // My team getting points -> underdog.
-      if (rawLine.startsWith("+") || rawLine.includes(" +")) {
-        return { favored: "opp", spread: spread };
+    // ---------- best wins ----------
+    function renderBestWins() {
+      const c = document.getElementById("bestWinsContainer");
+      if (!c) return;
+      if (!state.bestWins.length) {
+        c.innerHTML = '<div class="col-span-full py-4 text-center text-slate-500 text-xs">Waiting on completed games…</div>';
+        return;
       }
-
-      // Named favorite, e.g. "TA&M -16.5".
-      const prefixMatch = rawLine.match(/^([A-Za-z\s.&]+?)\s*-\s*(\d+(\.\d+)?)/);
-      if (prefixMatch) {
-        const abbrev = prefixMatch[1].trim();
-        const isMyTeam = matchesTeam(abbrev, m.team);
-        const isOpp = matchesTeam(abbrev, m.opponent);
-        if (isMyTeam && !isOpp) return { favored: "team", spread: spread };
-        if (isOpp && !isMyTeam) return { favored: "opp", spread: spread };
-        return { favored: null, spread: 0 };
-      }
-
-      // Bare "-7.5": sheet convention treats it as my team favored.
-      if (/^-\s*\d/.test(rawLine)) return { favored: "team", spread: spread };
-      return { favored: null, spread: 0 };
+      c.innerHTML = state.bestWins.slice(0, 3).map((win, i) =>
+        '<div class="bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-lg p-2.5 transition">' +
+          '<div class="flex items-center justify-between text-xs mb-1"><span class="font-bold text-slate-400 uppercase text-[10px]">#' + (i + 1) + " Best Win</span>" +
+          '<span class="font-mono font-black text-emerald-400">+' + win.points + " pts</span></div>" +
+          '<div class="font-bold text-white text-sm truncate">' + esc(win.team) + "</div>" +
+          '<div class="text-[11px] text-slate-400 truncate">vs ' + esc(win.opponent) + "</div>" +
+          '<div class="mt-1.5 text-[10px] font-semibold text-amber-400/90 truncate">' + esc(win.owner) + "</div>" +
+        "</div>"
+      ).join("");
     }
 
-    // Check if team letters form an acronym (e.g., "PSU" -> "Penn State")
-    function matchesTeam(abbrev, teamName) {
-      const a = cleanName(abbrev);
-      const t = cleanName(teamName);
-      if (!a || !t) return false;
-      if (t.startsWith(a) || a.startsWith(t)) return true;
-      const words = (teamName || "").split(/\s+/).filter(w => w.length > 0);
-      const acronym = words.map(w => w[0].toLowerCase()).join("");
-      if (acronym.startsWith(a) || a === acronym) return true;
-      return false;
-    }
-
-    // Spread-implied win probability. Logistic curve: a 7-point favorite wins
-    // ~79%, 3 points ~64%, 14 ~94%. Labeled as an estimate, not a model pick.
-    function winProbBadge(m) {
-      const f = parseFavoritism(m);
-      if (!f.favored || !(f.spread > 0)) return "";
-      const pFav = 1 / (1 + Math.pow(10, -f.spread / 12));
-      const pTeam = f.favored === "team" ? pFav : 1 - pFav;
-      const pct = Math.round(pTeam * 100);
-      const cls = pct >= 65 ? "text-emerald-400 border-emerald-800/60 bg-emerald-950/60"
-                : pct >= 45 ? "text-amber-300 border-amber-800/60 bg-amber-950/60"
-                            : "text-rose-400 border-rose-800/60 bg-rose-950/60";
-      return `<span title="Estimate from the spread" class="text-[10px] font-semibold ${cls} border px-1.5 py-0.5 rounded whitespace-nowrap">~${pct}% win</span>`;
-    }
-
-    // FEATURE: TOP 3 CHOKE JOBS (FAVORITES THAT LOST)
+    // ---------- choke jobs: favorites that lost, derived from matchups ----------
     function renderChokeJobs() {
-      const container = document.getElementById("chokeJobsContainer");
-      if (!container) return;
+      const c = document.getElementById("chokeJobsContainer");
+      if (!c) return;
+
+      function matchesTeam(abbrev, teamName) {
+        const a = cleanName(abbrev), t = cleanName(teamName);
+        if (!a || !t) return false;
+        if (t.startsWith(a) || a.startsWith(t)) return true;
+        const words = (teamName || "").split(/\s+/).filter(w => w.length);
+        const acronym = words.map(w => w[0].toLowerCase()).join("");
+        return acronym.startsWith(a) || a === acronym;
+      }
 
       const chokes = [];
       state.matchups.forEach(m => {
         if (m.outcome !== "Lost") return;
-        const f = parseFavoritism(m);
-        if (f.favored === "team" && f.spread > 0) {
-          chokes.push({ team: m.team, owner: m.owner, opponent: m.opponent, spread: f.spread });
+        const rawLine = (m.gameLine || m.openLine || "").toString().trim();
+        if (!rawLine || /^(PK|EVEN)$/i.test(rawLine)) return;
+        if (rawLine.startsWith("+") || rawLine.includes(" +")) return; // underdog indicator
+
+        let favoredBy = null;
+        const prefixMatch = rawLine.match(/^([A-Za-z\s&]+?)\s*-\s*(\d+(\.\d+)?)/);
+        if (prefixMatch) {
+          const abbrev = prefixMatch[1].trim();
+          const lineVal = parseFloat(prefixMatch[2]);
+          if (matchesTeam(abbrev, m.team) && !matchesTeam(abbrev, m.opponent)) {
+            favoredBy = lineVal;
+          } else {
+            return; // opponent (or someone else) was favored
+          }
+        } else {
+          const plainNum = rawLine.match(/^-\s*(\d+(\.\d+)?)/);
+          if (plainNum) favoredBy = parseFloat(plainNum[1]);
+        }
+        if (favoredBy && favoredBy > 0) {
+          chokes.push({ team: m.team, owner: m.owner, opponent: m.opponent, spread: favoredBy });
         }
       });
-
       chokes.sort((a, b) => b.spread - a.spread);
 
       if (!chokes.length) {
-        container.innerHTML = `<div class="col-span-full py-4 text-center text-slate-500 text-xs">No favorites have lost yet this week.</div>`;
+        c.innerHTML = '<div class="col-span-full py-4 text-center text-slate-500 text-xs">No favorites have choked yet.</div>';
         return;
       }
-
-      container.innerHTML = chokes.slice(0, 3).map((c, idx) => `
-        <div class="bg-slate-950/70 border border-rose-950/40 hover:border-rose-500/50 rounded-lg p-2.5 relative overflow-hidden transition">
-          <div class="flex items-center justify-between text-xs mb-1">
-            <span class="font-bold text-rose-400 uppercase text-[10px]">#${idx + 1} Choke</span>
-            <span class="font-mono font-black text-rose-400">Fav by ${c.spread}</span>
-          </div>
-          <div class="font-bold text-white text-sm truncate">${c.team}</div>
-          <div class="text-[11px] text-slate-400 truncate">lost to ${c.opponent}</div>
-          <div class="mt-1.5 text-[10px] font-semibold text-slate-300 truncate">${c.owner}</div>
-        </div>
-      `).join("");
+      c.innerHTML = chokes.slice(0, 3).map((ch, i) =>
+        '<div class="bg-slate-950/70 border border-rose-950/40 hover:border-rose-500/50 rounded-lg p-2.5 transition">' +
+          '<div class="flex items-center justify-between text-xs mb-1"><span class="font-bold text-rose-400 uppercase text-[10px]">#' + (i + 1) + " Choke</span>" +
+          '<span class="font-mono font-black text-rose-400">Fav by ' + ch.spread + "</span></div>" +
+          '<div class="font-bold text-white text-sm truncate">' + esc(ch.team) + "</div>" +
+          '<div class="text-[11px] text-slate-400 truncate">lost to ' + esc(ch.opponent) + "</div>" +
+          '<div class="mt-1.5 text-[10px] font-semibold text-slate-300 truncate">' + esc(ch.owner) + "</div>" +
+        "</div>"
+      ).join("");
     }
 
-    function renderStandings() {
-      const tbody = document.getElementById("standingsBody");
-      const sub = document.getElementById("seasonSubheading");
-      if (sub) sub.innerText = `Total league points accrued through ${fmtWeekLabel(state.currentWeek)}`;
-      if (!tbody) return;
-      if (!state.standings.length) {
-        tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-slate-500">No season standings recorded yet.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = state.standings.map((s, idx) => `
-        <tr class="hover:bg-slate-800/40 transition">
-          <td class="py-4 px-4 text-center font-mono font-bold ${idx === 0 ? 'text-amber-400' : 'text-slate-400'}">${idx + 1}</td>
-          <td class="py-4 px-6 font-semibold text-white">${s.owner}</td>
-          <td class="py-4 px-6 text-right font-mono font-bold text-amber-400">${s.totalPts}</td>
-        </tr>
-      `).join("");
-    }
-
-    function renderPayouts() {
-      const tbody = document.getElementById("payoutsBody");
-      const totalsEl = document.getElementById("payoutTotals");
-      if (!tbody) return;
-      const payouts = state.payouts || [];
-      if (!payouts.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-500">No weekly results yet.</td></tr>`;
-        if (totalsEl) totalsEl.innerHTML = "";
-        return;
-      }
-      tbody.innerHTML = payouts.map(p => {
-        const weekLabel = fmtWeekLabel(p.week);
-        const winners = p.winners.map(w => `<span class="font-semibold text-white">${w}</span>`).join(' <span class="text-slate-500">&</span> ');
-        const status = p.complete
-          ? `<span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-semibold">Final</span>`
-          : `<span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-semibold">In progress</span>`;
-        return `
-          <tr class="hover:bg-slate-800/40 transition">
-            <td class="py-3 px-4 font-mono text-slate-300">${weekLabel}</td>
-            <td class="py-3 px-4">${winners}</td>
-            <td class="py-3 px-4 text-right font-mono text-slate-300">${p.score}</td>
-            <td class="py-3 px-4 text-right font-mono font-bold text-amber-400">$${p.share.toFixed(2)}${p.winners.length > 1 ? " ea" : ""}</td>
-            <td class="py-3 px-4 text-center">${status}</td>
-          </tr>`;
-      }).join("");
-
-    // Running totals across FINAL weeks only — an in-progress week hasn't paid out.
-// Net = winnings − $200 buy-in, so every owner sees their true position.
-const BUY_IN = 200;
-const totals = {};
-payouts.filter(p => p.complete).forEach(p => {
-  p.winners.forEach(w => { totals[w] = (totals[w] || 0) + p.share; });
-});
-// Every owner counts, not just winners — union of standings owners and payout winners.
-const owners = [];
-(state.standings || []).forEach(s => { if (!owners.includes(s.owner)) owners.push(s.owner); });
-Object.keys(totals).forEach(o => { if (!owners.includes(o)) owners.push(o); });
-const ranked = owners.map(o => {
-  const won = totals[o] || 0;
-  return { owner: o, won: won, net: won - BUY_IN };
-}).sort((a, b) => b.net - a.net);
-const paidOut = ranked.reduce((s, r) => s + r.won, 0);
-const totalEl = document.getElementById("payoutSeasonTotal");
-if (totalEl) totalEl.innerText = `$${paidOut.toFixed(2)} paid`;
-const fmtNet = n => (n > 0 ? "+$" : n < 0 ? "-$" : "$") + Math.abs(n).toFixed(2);
-if (totalsEl) {
-  totalsEl.innerHTML = ranked.length
-    ? ranked.map((r, i) => {
-        const netCls = r.net > 0 ? "text-emerald-400" : r.net < 0 ? "text-red-400" : "text-slate-400";
-        return `
-      <div class="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2">
-        <span class="text-xs font-semibold ${i === 0 ? "text-amber-400" : "text-slate-300"}">${i + 1}. ${r.owner}</span>
-        <span class="text-right">
-          <span class="block text-[10px] font-mono text-slate-500">won $${r.won.toFixed(2)}</span>
-          <span class="block text-xs font-mono font-bold ${netCls}">${fmtNet(r.net)}</span>
-        </span>
-      </div>`;
-      }).join("")
-    : `<div class="text-xs text-slate-500">No payouts finalized yet.</div>`;
-  }
-}
-
-
+    // ---------- owner filter ----------
     function populateOwnerFilter() {
-      const select = document.getElementById("ownerFilter");
-      if (!select) return;
-      const current = select.value;
+      const sel = document.getElementById("ownerFilter");
+      if (!sel) return;
+      const cur = sel.value || "ALL";
       const owners = [...new Set(state.matchups.map(m => m.owner))].sort();
-
-      select.innerHTML = `<option value="ALL">All Owners (${owners.length})</option>` +
-        owners.map(o => `<option value="${o}" ${o === current ? "selected" : ""}>${o}</option>`).join("");
+      sel.innerHTML = '<option value="ALL">All Owners (' + owners.length + ")</option>" +
+        owners.map(o => '<option value="' + esc(o) + '"' + (o === cur ? " selected" : "") + ">" + esc(o) + "</option>").join("");
     }
 
-    function cleanName(str) {
-      return (str || "").toString().toLowerCase().replace(/[^a-z0-9]/g, "");
-    }
-
-    function calculateCover(teamScore, oppScore, lineStr) {
-      if (teamScore === "" || oppScore === "" || !lineStr) return null;
-
-      const tScore = Number(teamScore);
-      const oScore = Number(oppScore);
-      if (isNaN(tScore) || isNaN(oScore)) return null;
-
-      let spread = 0;
-      const clean = lineStr.toString().trim().toUpperCase();
-      if (clean !== "PK" && clean !== "EVEN") {
-        const match = clean.match(/([+-]?\d+(\.\d+)?)/);
-        if (match) spread = parseFloat(match[1]);
-      }
-
-      const diff = (tScore - oScore) + spread;
-
-      if (diff > 0) {
-        return { text: `Covering by ${diff % 1 === 0 ? diff : diff.toFixed(1)}`, state: "cover" };
-      } else if (diff < 0) {
-        const absDiff = Math.abs(diff);
-        return { text: `Busting by ${absDiff % 1 === 0 ? absDiff : absDiff.toFixed(1)}`, state: "bust" };
-      } else {
-        return { text: `Pushing`, state: "push" };
-      }
+    // ---------- matchup cards ----------
+    function matchupStatus(m) {
+      if (m.outcome === "In Progress") return "LIVE";
+      if (m.outcome === "Won" || m.outcome === "Lost") return "FINAL";
+      return "UPCOMING";
     }
 
     function renderMatchups() {
-      const container = document.getElementById("matchupsGrid");
-      const ownerFilter = document.getElementById("ownerFilter").value;
-      if (!container) return;
+      const grid = document.getElementById("matchupsGrid");
+      if (!grid) return;
+      const ownerFilter = document.getElementById("ownerFilter").value || "ALL";
 
-      const teamOwnerMap = {};
-      state.matchups.forEach(m => {
-        teamOwnerMap[cleanName(m.team)] = m.owner;
-      });
-
-      const liveGamesTotal = state.matchups.filter(m => m.outcome === "In Progress").length;
-      const liveBadge = document.getElementById("badgeLiveCount");
-      if (liveBadge) liveBadge.innerText = liveGamesTotal;
+      const liveTotal = state.matchups.filter(m => m.outcome === "In Progress").length;
+      document.getElementById("badgeLiveCount").innerText = liveTotal;
 
       let filtered = state.matchups;
-      if (ownerFilter !== "ALL") {
-        filtered = filtered.filter(m => m.owner === ownerFilter);
-      }
+      if (ownerFilter !== "ALL") filtered = filtered.filter(m => m.owner === ownerFilter);
+      if (state.statusFilter !== "ALL") filtered = filtered.filter(m => matchupStatus(m) === state.statusFilter);
 
-      if (state.statusFilter === "LIVE") {
-        filtered = filtered.filter(m => m.outcome === "In Progress");
-      } else if (state.statusFilter === "UPCOMING") {
-        filtered = filtered.filter(m => m.outcome !== "Won" && m.outcome !== "Lost" && m.outcome !== "In Progress");
-      } else if (state.statusFilter === "FINAL") {
-        filtered = filtered.filter(m => m.outcome === "Won" || m.outcome === "Lost");
-      }
+      document.getElementById("gameCount").innerText = filtered.length;
 
       if (!filtered.length) {
-        container.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500 text-sm">No matchups found for this filter selection.</div>`;
+        grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-500 text-sm">No matchups found for this filter selection.</div>';
         return;
       }
 
-      container.innerHTML = filtered.map(m => {
+      grid.innerHTML = filtered.map(m => {
         const isWon = m.outcome === "Won";
         const isLost = m.outcome === "Lost";
-        const isInProgress = m.outcome === "In Progress";
+        const isLive = m.outcome === "In Progress";
 
-        let badge = `<span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Upcoming</span>`;
-        if (isWon) badge = `<span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold">WON (+${m.points} pts)</span>`;
-        if (isLost) badge = `<span class="text-[11px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold">LOST</span>`;
-        if (isInProgress) badge = `<span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-semibold flex items-center"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 live-pulse mr-1.5"></span>${m.statusClock || "Live"}</span>`;
+        let badge = '<span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Upcoming</span>';
+        if (isWon) badge = '<span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold">WON (+' + m.points + " pts)</span>";
+        if (isLost) badge = '<span class="text-[11px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold">LOST</span>';
+        if (isLive) badge = '<span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-semibold inline-flex items-center"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400 live-pulse mr-1.5"></span>' + esc(m.statusClock || "Live") + "</span>";
 
-        const oppOwner = teamOwnerMap[cleanName(m.opponent)];
-        const isH2H = oppOwner && oppOwner !== m.owner;
-        const isRankedClash = m.teamRank && m.oppRank;
+        const hasScore = m.teamScore !== "" && m.teamScore !== null && m.teamScore !== undefined &&
+                         m.oppScore !== "" && m.oppScore !== null && m.oppScore !== undefined;
+        const tN = Number(m.teamScore), oN = Number(m.oppScore);
 
-        const teamRankBadge = m.teamRank
-          ? `<span class="ml-1.5 text-[10px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/40 rounded px-1 flex-shrink-0">#${m.teamRank}</span>` : "";
-        const oppRankBadge = m.oppRank
-          ? `<span class="ml-1.5 text-[10px] font-black text-slate-300 bg-slate-500/10 border border-slate-700 rounded px-1 flex-shrink-0">#${m.oppRank}</span>` : "";
+        const logo = (url) => url
+          ? '<img src="' + esc(url) + '" alt="" loading="lazy" class="w-6 h-6 object-contain flex-shrink-0" />'
+          : '<div class="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-[10px] text-slate-500 font-bold flex-shrink-0">CFB</div>';
 
-        const hasScore = m.teamScore !== "" && m.oppScore !== "";
-        const teamScoreNum = Number(m.teamScore);
-        const oppScoreNum = Number(m.oppScore);
-
-        const winProbHtml = winProbBadge(m);
-
-        const coverData = (isInProgress || isWon || isLost) ? calculateCover(m.teamScore, m.oppScore, m.gameLine || m.openLine) : null;
-        let coverBadge = "";
-        if (coverData) {
-          if (coverData.state === "cover") {
-            coverBadge = `<span class="text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded">${coverData.text}</span>`;
-          } else if (coverData.state === "bust") {
-            coverBadge = `<span class="text-[10px] font-semibold text-rose-400 bg-rose-950/60 border border-rose-800/60 px-1.5 py-0.5 rounded">${coverData.text}</span>`;
-          } else {
-            coverBadge = `<span class="text-[10px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/60 px-1.5 py-0.5 rounded">${coverData.text}</span>`;
-          }
-        }
-
-        return `
-          <div class="bg-slate-900/80 border ${isH2H ? 'border-amber-500/40 bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/10' : 'border-slate-800'} rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition shadow">
-            <div>
-              <div class="flex justify-between items-center mb-2.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">${m.owner}</span>
-                ${badge}
-              </div>
-
-              ${isRankedClash ? `
-                <div class="mb-2.5 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-[10px] text-amber-300 font-semibold">
-                  <span>🔥 Top-25 Clash</span>
-                  <span>#${m.teamRank} vs #${m.oppRank}</span>
-                </div>
-              ` : ''}
-
-              ${isH2H ? `
-                <div class="mb-2.5 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-[10px] text-amber-300 font-semibold">
-                  <span>⚔️ League Clash</span>
-                  <span>vs ${oppOwner}</span>
-                </div>
-              ` : ''}
-
-              <!-- MATCHUP ROW WITH OFFICIAL ESPN TEAM LOGOS -->
-              <div class="space-y-2">
-                <!-- TEAM ROW -->
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2.5 min-w-0">
-                    ${m.teamLogo ? `<img src="${m.teamLogo}" alt="" class="w-6 h-6 object-contain flex-shrink-0" />` : `<div class="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-[10px] text-slate-500 font-bold flex-shrink-0">CFB</div>`}
-                    <span class="font-bold text-white text-sm truncate max-w-[150px] sm:max-w-[180px]">${m.team}</span>${teamRankBadge}
-                  </div>
-                  <span class="font-mono font-bold text-base ${hasScore && teamScoreNum >= oppScoreNum ? 'text-emerald-400' : 'text-slate-400'}">
-                    ${hasScore ? m.teamScore : '--'}
-                  </span>
-                </div>
-
-                <!-- OPPONENT ROW -->
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2.5 min-w-0">
-                    ${m.oppLogo ? `<img src="${m.oppLogo}" alt="" class="w-6 h-6 object-contain flex-shrink-0" />` : `<div class="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-[10px] text-slate-500 font-bold flex-shrink-0">CFB</div>`}
-                    <span class="font-medium text-slate-300 text-sm truncate max-w-[150px] sm:max-w-[180px]">${m.opponent}</span>${oppRankBadge}
-                  </div>
-                  <span class="font-mono font-bold text-base ${hasScore && oppScoreNum > teamScoreNum ? 'text-emerald-400' : 'text-slate-400'}">
-                    ${hasScore ? m.oppScore : '--'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- FOOTER: SPREAD, WIN PROB, COVER BADGE, TV, CLOCK -->
-            <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-col gap-1.5 text-[11px] text-slate-400">
-              <div class="flex justify-between items-start">
-                <div class="flex items-center space-x-2">
-                  <span>Line: <strong class="text-slate-200 font-mono">${m.gameLine || m.openLine || "PK"}</strong></span>
-                  ${m.tv ? `<span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-semibold uppercase">${m.tv}</span>` : ''}
-                </div>
-                <div class="text-right">
-                  <div class="text-slate-300 font-medium">${m.statusClock || m.kickoff || "Scheduled"}</div>
-                  ${winProbHtml ? `<div class="mt-1">${winProbHtml}</div>` : ''}
-                </div>
-              </div>
-
-              ${coverBadge ? `
-                <div class="flex justify-start pt-0.5">
-                  ${coverBadge}
-                </div>
-              ` : ''}
-            </div>
-          </div>
-        `;
+        return '<div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition shadow">' +
+          '<div>' +
+            '<div class="flex justify-between items-center mb-2.5">' +
+              '<span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">' + esc(m.owner) + "</span>" + badge +
+            "</div>" +
+            '<div class="space-y-2">' +
+              '<div class="flex items-center justify-between"><div class="flex items-center gap-2.5 min-w-0">' + logo(m.teamLogo) +
+                '<span class="font-bold text-white text-sm truncate">' + esc(m.team) + (m.teamRank ? ' <span class="text-[10px] text-slate-500 font-mono">#' + m.teamRank + "</span>" : "") + "</span></div>" +
+                '<span class="font-mono font-bold text-base ' + (hasScore && tN >= oN ? "text-emerald-400" : "text-slate-400") + '">' + (hasScore ? esc(m.teamScore) : "–") + "</span></div>" +
+              '<div class="flex items-center justify-between"><div class="flex items-center gap-2.5 min-w-0">' + logo(m.oppLogo) +
+                '<span class="font-medium text-slate-300 text-sm truncate">' + esc(m.opponent) + (m.oppRank ? ' <span class="text-[10px] text-slate-500 font-mono">#' + m.oppRank + "</span>" : "") + "</span></div>" +
+                '<span class="font-mono font-bold text-base ' + (hasScore && oN > tN ? "text-emerald-400" : "text-slate-400") + '">' + (hasScore ? esc(m.oppScore) : "–") + "</span></div>" +
+            "</div>" +
+          "</div>" +
+          '<div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">' +
+            '<div class="flex items-center gap-2"><span>Line: <strong class="text-slate-200 font-mono">' + esc(m.gameLine || m.openLine || "PK") + "</strong></span>" +
+              (m.tv ? '<span class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-semibold uppercase">' + esc(m.tv) + "</span>" : "") + "</div>" +
+            '<span class="text-slate-300 font-medium">' + esc(m.statusClock || m.kickoff || "Scheduled") + "</span>" +
+          "</div>" +
+        "</div>";
       }).join("");
     }
 
     function updateStats() {
-      if (state.leaderboard.length > 0) {
-        document.getElementById("statLeader").innerText = state.leaderboard[0].owner;
-        document.getElementById("statHighScore").innerText = `${state.leaderboard[0].livePts} pts`;
-        const totalLive = state.leaderboard.reduce((acc, row) => acc + (row.inProgress || 0), 0);
-        document.getElementById("statLiveCount").innerText = totalLive;
-        const maxCeiling = Math.max(...state.leaderboard.map(r => r.maxCeiling || 0));
-        document.getElementById("statMaxCeiling").innerText = `${maxCeiling} pts`;
+      if (!state.leaderboard.length) return;
+      document.getElementById("statLeader").innerText = state.leaderboard[0].owner;
+      document.getElementById("statHighScore").innerText = state.leaderboard[0].livePts + " pts";
+      document.getElementById("statLiveCount").innerText = state.leaderboard.reduce((a, r) => a + (r.inProgress || 0), 0);
+      document.getElementById("statMaxCeiling").innerText = Math.max(...state.leaderboard.map(r => r.maxCeiling || 0)) + " pts";
+    }
+
+    // ---------- season standings ----------
+    function renderStandings() {
+      const tbody = document.getElementById("standingsBody");
+      if (!tbody) return;
+      if (!state.standings.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-slate-500">No season standings recorded yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = state.standings.map((s, i) =>
+        '<tr class="hover:bg-slate-800/40 transition' + (i === 0 ? " gold-row" : "") + '">' +
+          '<td class="py-4 px-4 text-center font-mono font-bold ' + (i === 0 ? "text-amber-300" : "text-slate-400") + '">' + (i === 0 ? '<i class="fa-solid fa-crown mr-1"></i>' : "") + (i + 1) + "</td>" +
+          '<td class="py-4 px-6 font-semibold ' + (i === 0 ? "text-amber-200" : "text-white") + '">' + esc(s.owner) + "</td>" +
+          '<td class="py-4 px-6 text-right font-mono font-bold text-amber-400">' + s.totalPts + "</td>" +
+        "</tr>"
+      ).join("");
+    }
+
+    // ---------- payout ledger: final weeks + $200 buy-in net positions ----------
+    function renderPayouts() {
+      const weeksBody = document.getElementById("payoutWeeksBody");
+      const netBody = document.getElementById("netLedgerBody");
+      if (!weeksBody || !netBody) return;
+
+      const weeks = [...(state.payouts || [])].sort((a, b) => weekNum(a.week) - weekNum(b.week));
+      if (!weeks.length) {
+        weeksBody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-slate-500 text-xs">No payout data yet.</td></tr>';
+        netBody.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-slate-500 text-xs">—</td></tr>';
+        return;
+      }
+
+      weeksBody.innerHTML = weeks.map(p => {
+        const winners = (p.winners || []).map(esc).join(", ") || "—";
+        const status = p.complete
+          ? '<span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">Final</span>'
+          : '<span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Live</span>';
+        return '<tr>' +
+          '<td class="py-2.5 pr-3 font-mono text-slate-300">' + esc(prettyWeek(p.week)) + "</td>" +
+          '<td class="py-2.5 pr-3 font-semibold text-white">' + winners + "</td>" +
+          '<td class="py-2.5 pr-3 text-right font-mono text-amber-400 font-bold">' + (p.score !== undefined && p.score !== null ? p.score : "—") + "</td>" +
+          '<td class="py-2.5 text-right">' + status + "</td>" +
+        "</tr>";
+      }).join("");
+
+      // Net positions across FINAL weeks only: won − $200 buy-in.
+      const won = {};
+      weeks.forEach(p => {
+        if (!p.complete) return;
+        (p.winners || []).forEach(w => { won[w] = (won[w] || 0) + (Number(p.share) || 0); });
+      });
+      const owners = [...new Set([
+        ...Object.keys(won),
+        ...state.standings.map(s => s.owner),
+        ...state.leaderboard.map(r => r.owner)
+      ])].sort();
+      netBody.innerHTML = owners.map(o => {
+        const w = won[o] || 0;
+        const net = w - BUY_IN;
+        const netCls = net > 0 ? "text-emerald-400" : net < 0 ? "text-rose-400" : "text-slate-300";
+        return '<tr>' +
+          '<td class="py-2.5 pr-3 font-semibold text-white">' + esc(o) + "</td>" +
+          '<td class="py-2.5 pr-3 text-right font-mono text-slate-300">$' + w.toFixed(2) + "</td>" +
+          '<td class="py-2.5 text-right font-mono font-bold ' + netCls + '">$' + net.toFixed(2) + "</td>" +
+        "</tr>";
+      }).join("");
+    }
+
+    // ---------- draft results ----------
+    const CONF_STYLES = {
+      "sec":        { abbr: "SEC", bg: "#1e3a5f", fg: "#cfe3ff" },
+      "big 10":     { abbr: "B10", bg: "#5b1a1a", fg: "#ffd9d9" },
+      "big ten":    { abbr: "B10", bg: "#5b1a1a", fg: "#ffd9d9" },
+      "acc":        { abbr: "ACC", bg: "#1a3a5f", fg: "#cfe8ff" },
+      "big 12":     { abbr: "B12", bg: "#4a2a6b", fg: "#e6d4ff" },
+      "independent":{ abbr: "IND", bg: "#3f3f46", fg: "#e4e4e7" },
+      "pac-12":     { abbr: "P12", bg: "#0f4c4c", fg: "#c8f0f0" },
+      "aac":        { abbr: "AAC", bg: "#134e4a", fg: "#ccfbf1" },
+      "mac":        { abbr: "MAC", bg: "#713f12", fg: "#fef3c7" },
+      "c-usa":      { abbr: "CUSA", bg: "#3b2f2f", fg: "#f5e6d3" },
+      "conference usa": { abbr: "CUSA", bg: "#3b2f2f", fg: "#f5e6d3" },
+      "mountain west": { abbr: "MW", bg: "#1c2a4a", fg: "#dbeafe" },
+      "sun belt":   { abbr: "SB", bg: "#14532d", fg: "#dcfce7" }
+    };
+    function confBadge(conf) {
+      const key = (conf || "").toString().toLowerCase().trim();
+      let s = CONF_STYLES[key];
+      if (!s) {
+        const abbr = (conf || "").toString().split(/[\s-]+/).map(w => w[0]).join("").slice(0, 4).toUpperCase() || "—";
+        s = { abbr: abbr, bg: "#27272a", fg: "#d4d4d8" };
+      }
+      return '<span class="conf-badge" title="' + esc(conf || "") + '" style="background:' + s.bg + ";color:" + s.fg + '">' + esc(s.abbr) + "</span>";
+    }
+
+    function renderDraft() {
+      const note = document.getElementById("draftNote");
+      const tbody = document.getElementById("draftBody");
+      if (!note || !tbody) return;
+
+      if (!state.draftResults) {
+        note.innerHTML = '<i class="fa-solid fa-circle-info text-amber-400 mr-1.5"></i>Draft data isn\'t available from the API yet — deploy the /dev version first.';
+        tbody.innerHTML = "";
+        return;
+      }
+      const rows = [...state.draftResults];
+      if (!rows.length) {
+        note.innerHTML = "No draft picks returned by the API.";
+        tbody.innerHTML = "";
+        return;
+      }
+
+      // Logo lookup from the current week's matchups, matched on normalized names.
+      const logoMap = {};
+      state.matchups.forEach(m => { if (m.teamLogo) logoMap[normTeam(m.team)] = m.teamLogo; });
+
+      // Draft order: rank ascending; unranked rows sink to the bottom.
+      rows.sort((a, b) => {
+        const ra = Number(a.rank), rb = Number(b.rank);
+        const aok = a.rank !== "" && a.rank !== null && a.rank !== undefined && !isNaN(ra);
+        const bok = b.rank !== "" && b.rank !== null && b.rank !== undefined && !isNaN(rb);
+        if (aok && bok) return ra - rb;
+        if (aok) return -1;
+        if (bok) return 1;
+        return 0;
+      });
+
+      note.innerHTML = rows.length + " picks &middot; ROI = points per draft dollar";
+      tbody.innerHTML = rows.map(d => {
+        const logo = logoMap[normTeam(d.team)];
+        const roi = Number(d.roi);
+        return '<tr class="hover:bg-slate-800/40 transition">' +
+          '<td class="py-3 px-4 text-center font-mono text-slate-400">' + esc(d.rank === "" || d.rank === null || d.rank === undefined ? "–" : d.rank) + "</td>" +
+          '<td class="py-3 px-4"><div class="flex items-center gap-2.5">' +
+            (logo ? '<img src="' + esc(logo) + '" alt="" loading="lazy" class="w-7 h-7 object-contain flex-shrink-0" />'
+                   : '<div class="w-7 h-7 rounded bg-slate-800 flex items-center justify-center text-[10px] text-slate-500 font-bold flex-shrink-0">CFB</div>') +
+            '<span class="font-semibold text-white">' + esc(d.team) + "</span></div></td>" +
+          '<td class="py-3 px-4 text-right font-mono text-slate-200">$' + (Number(d.draftPrice) || 0).toFixed(0) + "</td>" +
+          '<td class="py-3 px-4 text-slate-300">' + esc(d.owner) + "</td>" +
+          '<td class="py-3 px-4 text-center">' + confBadge(d.conference) + "</td>" +
+          '<td class="py-3 px-4 text-right font-mono font-bold ' + (roi >= 1 ? "text-emerald-400" : roi > 0 ? "text-amber-300" : "text-slate-500") + '">' + (isNaN(roi) ? "–" : roi.toFixed(2)) + "</td>" +
+        "</tr>";
+      }).join("");
+    }
+
+    // ---------- league history: champions wall, newest first ----------
+    const CHAMPIONS = [
+      { year: 2025, champion: "Magic Mark" },
+      { year: 2024, champion: "Brendan" },
+      { year: 2023, champion: "Romey" },
+      { year: 2022, champion: "Gaines" },
+      { year: 2021, champion: "Magic Mark" },
+      { year: 2020, champion: "Foster" },
+      { year: 2019, champion: "Becker" },
+      { year: 2018, champion: "Lively" },
+      { year: 2017, champion: "Spellman" },
+      { year: 2016, champion: "Brown" },
+      { year: 2015, champion: "Murphy" },
+      { year: 2014, champion: "Fran" }
+    ];
+    function renderHistory() {
+      const list = document.getElementById("historyList");
+      if (!list) return;
+      list.innerHTML = CHAMPIONS.map((c, i) =>
+        '<div class="flex items-center gap-4 px-5 py-4 hover:bg-slate-800/30 transition' + (i === 0 ? " bg-amber-500/5" : "") + '">' +
+          '<div class="font-mono font-black text-lg w-16 flex-shrink-0 ' + (i === 0 ? "text-amber-300" : "text-slate-400") + '">' + c.year + "</div>" +
+          (i === 0
+            ? '<i class="fa-solid fa-crown text-amber-400 flex-shrink-0"></i>'
+            : '<i class="fa-solid fa-medal text-slate-600 flex-shrink-0"></i>') +
+          '<div class="font-bold text-base ' + (i === 0 ? "text-amber-200" : "text-white") + '">' + esc(c.champion) + "</div>" +
+          (i === 0 ? '<span class="ml-auto text-[10px] font-bold uppercase tracking-wider text-amber-400/80">Defending champ</span>' : "") +
+        "</div>"
+      ).join("");
+    }
+
+    // ---------- trend chart: 11 owner lines, shared week x-axis, shared points y-axis ----------
+    const TREND_COLORS = ["#f59e0b","#34d399","#60a5fa","#f472b6","#a78bfa","#f87171","#22d3ee","#a3e635","#fb923c","#e879f9","#94a3b8","#facc15"];
+
+    async function loadTrendData() {
+      const note = document.getElementById("trendNote");
+      const weeks = [...state.availableWeeks].sort((a, b) => weekNum(a) - weekNum(b));
+      if (!weeks.length) {
+        if (note) note.innerText = "No weeks available.";
+        state.trendLoaded = true;
+        return;
+      }
+      if (note) note.innerText = "Loading " + weeks.length + " weeks…";
+      const missing = weeks.filter(w => !state.trendCache[w]);
+      await Promise.all(missing.map(async (w) => {
+        try {
+          const d = await apiGet(w);
+          state.trendCache[w] = d.leaderboard || [];
+        } catch (e) {
+          console.error("Trend fetch failed for", w, e);
+          state.trendCache[w] = [];
+        }
+      }));
+      state.trendLoaded = true;
+      renderTrend();
+    }
+
+    function renderTrend() {
+      const canvas = document.getElementById("trendCanvas");
+      const legend = document.getElementById("trendLegend");
+      const note = document.getElementById("trendNote");
+      if (!canvas) return;
+
+      const weeks = [...state.availableWeeks].sort((a, b) => weekNum(a) - weekNum(b));
+      const owners = [...new Set(weeks.flatMap(w => (state.trendCache[w] || []).map(r => r.owner)))];
+      if (!weeks.length || !owners.length) {
+        if (note) note.innerText = "Not enough data to draw the trend yet.";
+        return;
+      }
+
+      // owner -> [points per week] (null where missing)
+      const series = {};
+      owners.forEach(o => { series[o] = weeks.map(w => {
+        const row = (state.trendCache[w] || []).find(r => r.owner === o);
+        return row ? Number(row.livePts) || 0 : null;
+      }); });
+
+      let maxY = 0;
+      Object.values(series).forEach(pts => pts.forEach(p => { if (p !== null && p > maxY) maxY = p; }));
+      maxY = Math.ceil((maxY || 10) / 25) * 25;
+
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.clientWidth, H = canvas.clientHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, W, H);
+
+      const padL = 44, padR = 12, padT = 14, padB = 30;
+      const plotW = W - padL - padR, plotH = H - padT - padB;
+      const x = i => padL + (weeks.length === 1 ? plotW / 2 : (i / (weeks.length - 1)) * plotW);
+      const y = v => padT + plotH - (v / maxY) * plotH;
+
+      // gridlines + y labels
+      ctx.font = "10px system-ui"; ctx.fillStyle = "#64748b"; ctx.textAlign = "right";
+      const step = maxY <= 50 ? 10 : maxY <= 100 ? 25 : 50;
+      for (let v = 0; v <= maxY; v += step) {
+        ctx.strokeStyle = v === 0 ? "#334155" : "#1e293b";
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(padL, y(v)); ctx.lineTo(W - padR, y(v)); ctx.stroke();
+        ctx.fillText(v, padL - 8, y(v) + 3);
+      }
+      // x labels
+      ctx.textAlign = "center";
+      weeks.forEach((w, i) => ctx.fillText("W" + weekNum(w), x(i), H - 10));
+
+      // lines
+      owners.forEach((o, oi) => {
+        const color = TREND_COLORS[oi % TREND_COLORS.length];
+        const pts = series[o];
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = "round";
+        ctx.beginPath();
+        let started = false;
+        pts.forEach((p, i) => {
+          if (p === null) { started = false; return; }
+          if (!started) { ctx.moveTo(x(i), y(p)); started = true; }
+          else ctx.lineTo(x(i), y(p));
+        });
+        ctx.stroke();
+        // dots
+        ctx.fillStyle = color;
+        pts.forEach((p, i) => {
+          if (p === null) return;
+          ctx.beginPath(); ctx.arc(x(i), y(p), 3, 0, Math.PI * 2); ctx.fill();
+        });
+      });
+
+      if (legend) {
+        legend.innerHTML = owners.map((o, oi) =>
+          '<span class="inline-flex items-center whitespace-nowrap"><span class="legend-dot" style="background:' + TREND_COLORS[oi % TREND_COLORS.length] + '"></span>' + esc(o) + "</span>"
+        ).join("");
+      }
+      if (note) {
+        const last = weeks[weeks.length - 1];
+        note.innerText = weeks.length + " weeks · points per owner · through " + prettyWeek(last);
       }
     }
 
-    // FIX 2026-09-19: ask the API which week is current instead of hardcoding it.
-    // The API follows Live Scoreboard!C5, which the sheet updater keeps in sync,
-    // so the site now follows the sheet automatically — no weekly manual bump.
-    // (Before this, the hardcoded "Week 2" default below meant every load AND
-    // every 60s poll requested ?week=Week 2, which also kept stomping C5.)
+    window.addEventListener("resize", () => { if (state.trendLoaded && state.activeTab === "season") renderTrend(); });
+
+    // ---------- boot ----------
     async function init() {
+      renderHistory();
       try {
-        const res = await fetch(`${API_URL}?_t=${Date.now()}`, { method: "GET", redirect: "follow", cache: "no-store" });
-        const data = await res.json();
+        const data = await apiGet(undefined); // no week param -> API follows Live Scoreboard!C5
         if (data && data.currentWeek) state.currentWeek = data.currentWeek;
       } catch (err) {
-        console.error("Week init failed, using default:", err);
+        console.error("Week init failed, using fallback:", err);
+        state.currentWeek = "Week 4";
       }
       await fetchData();
     }
@@ -858,5 +1038,3 @@ if (totalsEl) {
   </script>
 </body>
 </html>
-
-
