@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>CFB Fantasy League | Live Dashboard</title>
+  <title>CFB 2026 SZN | Live Dashboard</title>
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -62,8 +62,8 @@
             <text x="20" y="34" text-anchor="middle" font-size="7" font-weight="800" fill="#e2e8f0" letter-spacing="1">XII</text>
           </svg>
           <div>
-            <div class="font-black text-lg sm:text-xl tracking-wider uppercase text-white leading-none">Gridiron <span class="text-amber-400">Auction</span></div>
-            <div class="text-[10px] text-slate-400 uppercase tracking-[0.2em] mt-1">12th Season &middot; Weekly Points Race</div>
+            <div class="font-black text-lg sm:text-xl tracking-wider uppercase text-white leading-none">CFB 2026 <span class="text-amber-400">SZN</span></div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-[0.2em] mt-1">12th Season</div>
           </div>
         </div>
         <div class="flex items-center gap-2 sm:gap-3">
@@ -87,7 +87,6 @@
     <nav class="border-t border-slate-800/70">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1.5 py-2 overflow-x-auto">
         <button id="tabBtn-scoreboard" onclick="switchTab('scoreboard')" class="tab-btn active px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap">Live Scoreboard</button>
-        <button id="tabBtn-saturday" onclick="switchTab('saturday')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-slate-400 whitespace-nowrap">Saturday</button>
         <button id="tabBtn-season" onclick="switchTab('season')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-slate-400 whitespace-nowrap">Season</button>
         <button id="tabBtn-draft" onclick="switchTab('draft')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-slate-400 whitespace-nowrap">Draft Results</button>
         <button id="tabBtn-history" onclick="switchTab('history')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-slate-400 whitespace-nowrap">League History</button>
@@ -210,33 +209,6 @@
       </section>
     </div>
 
-    <!-- ============ TAB: SATURDAY ============ -->
-    <div id="view-saturday" class="hidden space-y-8">
-      <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
-        <div class="p-5 border-b border-slate-800 bg-slate-900/90">
-          <h2 class="text-lg font-bold text-white">Saturday Board</h2>
-          <p class="text-xs text-slate-400">Every owner's record, games left, and max-points ceiling for the week</p>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse min-w-[560px]">
-            <thead>
-              <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-950/40 border-b border-slate-800">
-                <th class="py-3.5 px-4 text-center w-16">Rank</th>
-                <th class="py-3.5 px-4">Owner</th>
-                <th class="py-3.5 px-4 text-right">Points</th>
-                <th class="py-3.5 px-4 text-center">Record</th>
-                <th class="py-3.5 px-4 text-center">Games Left</th>
-                <th class="py-3.5 px-4 text-right">Max Ceiling</th>
-              </tr>
-            </thead>
-            <tbody id="saturdayBody" class="divide-y divide-slate-800/60 text-sm">
-              <tr><td colspan="6" class="py-12 text-center text-slate-500">Loading Saturday board…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-
     <!-- ============ TAB: SEASON ============ -->
     <div id="view-season" class="hidden space-y-8">
       <section class="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
@@ -351,7 +323,7 @@
           <i class="fa-solid fa-crown text-amber-400"></i>
         </div>
         <div id="historyList" class="divide-y divide-slate-800/60"></div>
-        <div class="p-4 text-[11px] text-slate-600">Historical champions shown as recorded — final roll call to be confirmed.</div>
+        
       </section>
     </div>
 
@@ -359,7 +331,7 @@
 
   <footer class="border-t border-slate-800 mt-4">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500">
-      <span>Gridiron Auction &middot; 12th season</span>
+      <span>CFB 2026 SZN &middot; 12th season</span>
       <span id="footSync">—</span>
     </div>
   </footer>
@@ -413,7 +385,7 @@
     }
 
     // ---------- tabs ----------
-    const TABS = ["scoreboard", "saturday", "season", "draft", "history"];
+    const TABS = ["scoreboard", "season", "draft", "history"];
     function switchTab(tab) {
       state.activeTab = tab;
       TABS.forEach(t => {
@@ -478,7 +450,6 @@
         renderWeekDropdown();
         renderHeaderState();
         renderLeaderboard();
-        renderSaturday();
         renderBestWins();
         renderChokeJobs();
         populateOwnerFilter();
@@ -554,27 +525,6 @@
             : '<span class="text-slate-500 font-mono">0</span>') + "</td>" +
           '<td class="py-3 px-4 text-center font-mono text-slate-400">' + (row.remaining || 0) + "</td>" +
           '<td class="py-3 px-4 text-right font-mono font-bold text-slate-200">' + (row.maxCeiling || 0) + "</td>" +
-        "</tr>";
-      }).join("");
-    }
-
-    // ---------- saturday board ----------
-    function renderSaturday() {
-      const tbody = document.getElementById("saturdayBody");
-      if (!tbody) return;
-      if (!state.leaderboard.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center text-slate-500">No Saturday data for this week yet.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = state.leaderboard.map((row, idx) => {
-        const rankColor = idx === 0 ? "text-amber-300 font-black" : "text-slate-400";
-        return '<tr class="hover:bg-slate-800/40 transition' + (idx === 0 ? " gold-row" : "") + '">' +
-          '<td class="py-3.5 px-4 text-center font-mono ' + rankColor + '">' + row.rank + "</td>" +
-          '<td class="py-3.5 px-4 font-semibold ' + (idx === 0 ? "text-amber-200" : "text-white") + '">' + esc(row.owner) + "</td>" +
-          '<td class="py-3.5 px-4 text-right font-mono font-bold text-amber-400">' + row.livePts + "</td>" +
-          '<td class="py-3.5 px-4 text-center font-mono text-slate-300">' + esc(row.record || "") + "</td>" +
-          '<td class="py-3.5 px-4 text-center font-mono text-slate-300">' + (row.remaining || 0) + "</td>" +
-          '<td class="py-3.5 px-4 text-right font-mono font-bold text-slate-200">' + (row.maxCeiling || 0) + "</td>" +
         "</tr>";
       }).join("");
     }
@@ -679,7 +629,7 @@
       const liveTotal = state.matchups.filter(m => m.outcome === "In Progress").length;
       document.getElementById("badgeLiveCount").innerText = liveTotal;
 
-      let filtered = state.matchups;
+      let filtered = state.matchups.filter(m => (m.opponent || "").toLowerCase() !== "bye");
       if (ownerFilter !== "ALL") filtered = filtered.filter(m => m.owner === ownerFilter);
       if (state.statusFilter !== "ALL") filtered = filtered.filter(m => matchupStatus(m) === state.statusFilter);
 
@@ -904,18 +854,18 @@ const DRAFT_DATA = [{"rank":1,"team":"Ohio State","bid":95,"owner":"Magic Mark",
 
     // ---------- league history: champions wall, newest first ----------
     const CHAMPIONS = [
-      { year: 2025, champion: "Magic Mark" },
-      { year: 2024, champion: "Brendan" },
+      { year: 2025, champion: "Murph" },
+      { year: 2024, champion: "Becker" },
       { year: 2023, champion: "Romey" },
-      { year: 2022, champion: "Gaines" },
-      { year: 2021, champion: "Magic Mark" },
-      { year: 2020, champion: "Foster" },
-      { year: 2019, champion: "Becker" },
+      { year: 2022, champion: "Romey" },
+      { year: 2021, champion: "Spellman" },
+      { year: 2020, champion: "Covid" },
+      { year: 2019, champion: "Romey" },
       { year: 2018, champion: "Lively" },
-      { year: 2017, champion: "Spellman" },
-      { year: 2016, champion: "Brown" },
-      { year: 2015, champion: "Murphy" },
-      { year: 2014, champion: "Fran" }
+      { year: 2017, champion: "Romey" },
+      { year: 2016, champion: "Fran" },
+      { year: 2015, champion: "Gaines" },
+      { year: 2014, champion: "Brendan" }
     ];
     function renderHistory() {
       const list = document.getElementById("historyList");
