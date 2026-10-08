@@ -286,7 +286,7 @@
             <div class="overflow-x-auto">
               <table class="w-full text-left text-sm">
                 <thead><tr class="text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-800">
-                  <th class="py-2 pr-3">Week</th><th class="py-2 pr-3">Winner</th><th class="py-2 pr-3 text-right">Score</th><th class="py-2 text-right">Status</th>
+                  <th class="py-2 pr-3">Week</th><th class="py-2 pr-3">Winner</th><th class="py-2 pr-3 text-right">Score</th><th class="py-2 pr-3 text-right">Payout</th><th class="py-2 text-right">Status</th>
                 </tr></thead>
                 <tbody id="payoutWeeksBody" class="divide-y divide-slate-800/60"></tbody>
               </table>
@@ -764,13 +764,15 @@
 
       const weeks = [...(state.payouts || [])].sort((a, b) => weekNum(a.week) - weekNum(b.week));
       if (!weeks.length) {
-        weeksBody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-slate-500 text-xs">No payout data yet.</td></tr>';
+        weeksBody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-500 text-xs">No payout data yet.</td></tr>';
         netBody.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-slate-500 text-xs">—</td></tr>';
         return;
       }
 
       weeksBody.innerHTML = weeks.map(p => {
         const winners = (p.winners || []).map(esc).join(", ") || "—";
+        const share = Number(p.share) || 0;
+        const shareTxt = share > 0 ? "$" + share.toFixed(2) + ((p.winners || []).length > 1 ? " ea" : "") : "—";
         const status = p.complete
           ? '<span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">Final</span>'
           : '<span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Live</span>';
@@ -778,6 +780,7 @@
           '<td class="py-2.5 pr-3 font-mono text-slate-300">' + esc(prettyWeek(p.week)) + "</td>" +
           '<td class="py-2.5 pr-3 font-semibold text-white">' + winners + "</td>" +
           '<td class="py-2.5 pr-3 text-right font-mono text-amber-400 font-bold">' + (p.score !== undefined && p.score !== null ? p.score : "—") + "</td>" +
+          '<td class="py-2.5 pr-3 text-right font-mono text-amber-400 font-bold">' + shareTxt + "</td>" +
           '<td class="py-2.5 text-right">' + status + "</td>" +
         "</tr>";
       }).join("");
